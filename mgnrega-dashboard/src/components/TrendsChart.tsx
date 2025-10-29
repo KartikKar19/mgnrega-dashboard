@@ -1,13 +1,46 @@
 import React from 'react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { DistrictPerformance } from '../lib/supabase';
-import { formatNumber } from '../lib/supabase'; // FIX: Import formatNumber
+import { formatNumber } from '../lib/supabase';
 
 interface Props {
   data: DistrictPerformance[];
+  language: 'hi' | 'en'; // ADDED
 }
 
-const TrendsChart: React.FC<Props> = ({ data }) => {
+const TrendsChart: React.FC<Props> = ({ data, language }) => {
+  // ADDED: Translation object for chart labels
+  const translations = {
+    hi: {
+      workersTrend: 'कामगार प्रवृत्ति',
+      workersTrendEn: 'Workers Trend',
+      wagesTrend: 'वेतन प्रवृत्ति (लाख में)',
+      wagesTrendEn: 'Wages Trend (in Lakhs)',
+      householdsWomen: 'परिवार और महिला कार्य दिवस',
+      householdsWomenEn: 'Households & Women Persondays',
+      totalWorkers: 'कुल कामगार',
+      wages: 'वेतन (₹ लाख)',
+      householdsWorked: 'परिवार जिन्होंने काम किया',
+      womenPersondays: 'महिला कार्य दिवस',
+      period: 'अवधि'
+    },
+    en: {
+      workersTrend: 'Workers Trend',
+      workersTrendEn: 'कामगार प्रवृत्ति',
+      wagesTrend: 'Wages Trend (in Lakhs)',
+      wagesTrendEn: 'वेतन प्रवृत्ति (लाख में)',
+      householdsWomen: 'Households & Women Persondays',
+      householdsWomenEn: 'परिवार और महिला कार्य दिवस',
+      totalWorkers: 'Total Workers',
+      wages: 'Wages (₹ Lakhs)',
+      householdsWorked: 'Households Worked',
+      womenPersondays: 'Women Persondays',
+      period: 'Period'
+    }
+  };
+
+  const t = translations[language];
+
   // Prepare data for charts (reverse to show oldest to newest)
   const chartData = [...data].reverse().map(d => ({
     period: `${d.month.substring(0, 3)} ${d.fin_year.substring(2)}`,
@@ -18,12 +51,12 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
   }));
 
   return (
-    // Updated to use the new CSS classes for grid layout and card styling
     <div className="chart-title-group"> 
       {/* Workers Trend */}
       <div className="chart-card">
         <h3 className="chart-title">
-          कामगार प्रवृत्ति / Workers Trend
+          {language === 'hi' ? t.workersTrend : t.workersTrend}
+          {language === 'hi' ? ` / ${t.workersTrendEn}` : ` / ${t.workersTrendEn}`}
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -31,11 +64,11 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
             <XAxis dataKey="period" stroke="#6b7280" />
             <YAxis 
                 stroke="#6b7280" 
-                tickFormatter={(value: number) => formatNumber(value)} // Use imported function
+                tickFormatter={(value: number) => formatNumber(value)}
             />
             <Tooltip 
-              formatter={(value: number) => [formatNumber(value), 'Total Workers']}
-              labelFormatter={(label) => `Period: ${label}`}
+              formatter={(value: number) => [formatNumber(value), t.totalWorkers]}
+              labelFormatter={(label) => `${t.period}: ${label}`}
               contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '4px' }}
             />
             <Legend iconType="circle" />
@@ -44,7 +77,7 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
               dataKey="workers" 
               stroke="#3b82f6" 
               strokeWidth={3}
-              name="Total Workers"
+              name={t.totalWorkers}
               dot={{ r: 4 }}
               activeDot={{ r: 6 }}
             />
@@ -55,7 +88,8 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
       {/* Wages Trend */}
       <div className="chart-card">
         <h3 className="chart-title">
-          वेतन प्रवृत्ति (लाख में) / Wages Trend (in Lakhs)
+          {language === 'hi' ? t.wagesTrend : t.wagesTrend}
+          {language === 'hi' ? ` / ${t.wagesTrendEn}` : ` / ${t.wagesTrendEn}`}
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -63,12 +97,12 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
             <XAxis dataKey="period" stroke="#6b7280" />
             <YAxis stroke="#6b7280" tickFormatter={(value) => `${value} L`} />
             <Tooltip 
-              formatter={(value: number) => [`₹${value.toFixed(2)} Lakhs`, 'Wages (₹ Lakhs)']}
-              labelFormatter={(label) => `Period: ${label}`}
+              formatter={(value: number) => [`₹${value.toFixed(2)} Lakhs`, t.wages]}
+              labelFormatter={(label) => `${t.period}: ${label}`}
               contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '4px' }}
             />
             <Legend iconType="circle" />
-            <Bar dataKey="wages" fill="#10b981" name="Wages (₹ Lakhs)" radius={[4, 4, 0, 0]} /> 
+            <Bar dataKey="wages" fill="#10b981" name={t.wages} radius={[4, 4, 0, 0]} /> 
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -76,7 +110,8 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
       {/* Households & Women */}
       <div className="chart-card">
         <h3 className="chart-title">
-          परिवार और महिला कार्य दिवस / Households & Women Persondays
+          {language === 'hi' ? t.householdsWomen : t.householdsWomen}
+          {language === 'hi' ? ` / ${t.householdsWomenEn}` : ` / ${t.householdsWomenEn}`}
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -84,11 +119,11 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
             <XAxis dataKey="period" stroke="#6b7280" />
             <YAxis 
                 stroke="#6b7280" 
-                tickFormatter={(value: number) => formatNumber(value)} // Use imported function
+                tickFormatter={(value: number) => formatNumber(value)}
             />
             <Tooltip 
               formatter={(value: number) => [formatNumber(value)]}
-              labelFormatter={(label) => `Period: ${label}`}
+              labelFormatter={(label) => `${t.period}: ${label}`}
               contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '4px' }}
             />
             <Legend iconType="circle" />
@@ -97,7 +132,7 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
               dataKey="households" 
               stroke="#8b5cf6" 
               strokeWidth={2}
-              name="Households Worked"
+              name={t.householdsWorked}
               dot={false}
               activeDot={{ r: 6 }}
             />
@@ -106,7 +141,7 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
               dataKey="women" 
               stroke="#ec4899" 
               strokeWidth={2}
-              name="Women Persondays"
+              name={t.womenPersondays}
               dot={false}
               activeDot={{ r: 6 }}
             />

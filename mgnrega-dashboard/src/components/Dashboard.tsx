@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Volume2, VolumeX, Briefcase } from 'lucide-react'; // Added Briefcase for no-data state
-import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakText, stopSpeaking } from '../services/api';
+import { MapPin, Volume2, VolumeX, Briefcase, Languages } from 'lucide-react';
+import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakWithGoogleTTS, stopSpeaking } from '../services/api';
 import type { District, DistrictPerformance } from '../lib/supabase';
-import { formatNumber, formatCurrency } from '../lib/supabase';
+import { formatNumber, formatCurrency, numberToHindiWords } from '../lib/supabase';
 import DistrictSelector from './DistrictSelector';
 import PerformanceCards from './PerformanceCards';
 import TrendsChart from './TrendsChart';
@@ -15,6 +15,37 @@ const Dashboard: React.FC = () => {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState<'hi' | 'en'>('hi'); // ADDED: Language state
+
+  // ADDED: Translation object
+  const translations = {
+    hi: {
+      title: 'MGNREGA Dashboard',
+      subtitle: 'मनरेगा प्रदर्शन डैशबोर्ड',
+      selectDistrict: 'अपना जिला चुनें',
+      loading: 'लोड हो रहा है...',
+      detectingLocation: '📍 आपका स्थान खोजा जा रहा है...',
+      noDataTitle: 'कोई डेटा उपलब्ध नहीं',
+      noDataMessage: 'इस जिले के लिए प्रदर्शन डेटा उपलब्ध नहीं है।',
+      dataSource: 'डेटा स्रोत: ग्रामीण विकास मंत्रालय, भारत सरकार',
+      switchToEnglish: 'Switch to English',
+      switchToHindi: 'हिंदी में बदलें'
+    },
+    en: {
+      title: 'MGNREGA Dashboard',
+      subtitle: 'MGNREGA Performance Dashboard',
+      selectDistrict: 'Select Your District',
+      loading: 'Loading...',
+      detectingLocation: '📍 Detecting your location...',
+      noDataTitle: 'No Data Available',
+      noDataMessage: 'Performance data is not available for this district.',
+      dataSource: 'Data Source: Ministry of Rural Development, Government of India',
+      switchToEnglish: 'Switch to English',
+      switchToHindi: 'हिंदी में बदलें'
+    }
+  };
+
+  const t = translations[language];
 
   // Load districts on mount
   useEffect(() => {
@@ -50,7 +81,6 @@ const Dashboard: React.FC = () => {
         const districtName = await getDistrictFromCoordinates(location.lat, location.lng);
         
         if (districtName) {
-          // Find matching district
           const matchedDistrict = districts.find(d => 
             d.district_name.toLowerCase().includes(districtName.toLowerCase()) ||
             districtName.toLowerCase().includes(d.district_name.toLowerCase())
@@ -90,34 +120,98 @@ const Dashboard: React.FC = () => {
     setIsSpeaking(false);
   };
 
-  const handleSpeak = () => {
-    if (!selectedDistrict || performanceData.length === 0) return;
-    
+  // UPDATED: Comprehensive audio covering ALL dashboard data
+  const handleSpeak = async () => {
     if (isSpeaking) {
       stopSpeaking();
       setIsSpeaking(false);
+      return;
+    }
+
+    if (!selectedDistrict || performanceData.length === 0) return;
+
+    const latest = performanceData[0];
+    let text = '';
+
+    if (language === 'hi') {
+      // Convert all numbers to Hindi words
+      const workersWords = numberToHindiWords(latest.Total_No_of_Workers);
+      const wagesWords = numberToHindiWords(latest.Wages);
+      const womenWords = numberToHindiWords(latest.Women_Persondays);
+      const householdsWords = numberToHindiWords(latest.Total_Households_Worked);
+      const completedWorksWords = numberToHindiWords(latest.Number_of_Completed_Works);
+      const avgWageWords = numberToHindiWords(latest.Average_Wage_rate_per_day_per_person);
+      const scPersondaysWords = numberToHindiWords(latest.SC_persondays);
+      const stPersondaysWords = numberToHindiWords(latest.ST_persondays);
+
+      text = `${selectedDistrict.district_name} jile ka MGNREGA pradarshan report.
+        Mahina: ${latest.month} ${latest.fin_year}.
+        
+        Kaamgaar vivaraṇ:
+        Kul kaamgaar: ${workersWords}.
+        Mahila karya divas: ${womenWords}.
+        Anusoochit jaati karya divas: ${scPersondaysWords}.
+        Anusoochit janjati karya divas: ${stPersondaysWords}.
+        
+        Vetan vivaraṇ:
+        Kul vetan: rupaye ${wagesWords}.
+        Pratidhin prathi vyakti ausat vetan: rupaye ${avgWageWords}.
+        
+        Parivaar aur karya vivaraṇ:
+        Kul parivaar jinhone kaam kiya: ${householdsWords}.
+        Poorn kiye gaye karya: ${completedWorksWords}.
+        
+        Yeh tha aapke jile ka sampurn MGNREGA pradarshan vivaraṇ.`;
     } else {
-      const latest = performanceData[0];
-      const text = `${selectedDistrict.district_name} जिले में MGNREGA प्रदर्शन। 
-        कुल कामगार: ${formatNumber(latest.Total_No_of_Workers)}। 
-        कुल वेतन: ${formatCurrency(latest.Wages)}। 
-        महिला कार्य दिवस: ${formatNumber(latest.Women_Persondays)}।`;
-      
-      speakText(text, 'hi-IN');
+      text = `MGNREGA performance report for ${selectedDistrict.district_name} district.
+        Period: ${latest.month} ${latest.fin_year}.
+        
+        Worker Details:
+        Total workers: ${latest.Total_No_of_Workers}.
+        Women persondays: ${latest.Women_Persondays}.
+        Scheduled Caste persondays: ${latest.SC_persondays}.
+        Scheduled Tribe persondays: ${latest.ST_persondays}.
+        
+        Wage Details:
+        Total wages: rupees ${latest.Wages}.
+        Average wage per day per person: rupees ${latest.Average_Wage_rate_per_day_per_person}.
+        
+        Household and Work Details:
+        Total households worked: ${latest.Total_Households_Worked}.
+        Number of completed works: ${latest.Number_of_Completed_Works}.
+        
+        This was the complete MGNREGA performance summary for your district.`;
+    }
+
+    try {
       setIsSpeaking(true);
+      await speakWithGoogleTTS(text, language === 'hi' ? 'hi-IN' : 'en-IN');
       
-      // Reset after speaking
-      setTimeout(() => setIsSpeaking(false), 5000);
+      // Set timeout to reset speaking state after estimated duration
+      const estimatedDuration = text.split(' ').length * 400; // ~400ms per word
+      setTimeout(() => setIsSpeaking(false), estimatedDuration);
+    } catch (error) {
+      console.error('Speech error:', error);
+      setIsSpeaking(false);
+    }
+  };
+
+  // ADDED: Language toggle handler
+  const toggleLanguage = () => {
+    setLanguage(language === 'hi' ? 'en' : 'hi');
+    // Stop any ongoing speech when switching language
+    if (isSpeaking) {
+      stopSpeaking();
+      setIsSpeaking(false);
     }
   };
 
   if (loading && districts.length === 0) {
     return (
-      // Using new loading-screen and indicator styles
       <div className="loading-screen">
         <div className="loading-indicator">
           <div className="loading-spinner"></div>
-          <p className="loading-text">लोड हो रहा है...</p>
+          <p className="loading-text">{t.loading}</p>
         </div>
       </div>
     );
@@ -125,42 +219,51 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-layout">
-      {/* Header - Class names updated to use CSS module conventions */}
+      {/* Header */}
       <header className="header-sticky">
         <div className="header-content">
           <div className="header-logo-group">
-            {/* REMOVED INDIAN FLAG IMAGE */}
             <div>
-              <h1 className="header-title">MGNREGA Dashboard</h1>
-              <p className="header-subtitle">मनरेगा प्रदर्शन डैशबोर्ड</p>
+              <h1 className="header-title">{t.title}</h1>
+              <p className="header-subtitle">{t.subtitle}</p>
             </div>
           </div>
           
-          {selectedDistrict && (
+          <div className="header-actions">
+            {/* ADDED: Language Toggle Button */}
             <button
-              onClick={handleSpeak}
-              className={`speech-button ${isSpeaking ? 'stop' : 'speak'}`}
-              title={isSpeaking ? 'रोकें' : 'सुनें'}
+              onClick={toggleLanguage}
+              className="language-button"
+              title={language === 'hi' ? t.switchToEnglish : t.switchToHindi}
             >
-              {isSpeaking ? <VolumeX size={24} className="text-white" /> : <Volume2 size={24} className="text-white" />}
+              <Languages size={20} className="text-gray-700" />
+              <span className="language-text">{language === 'hi' ? 'EN' : 'हिं'}</span>
             </button>
-          )}
+
+            {selectedDistrict && (
+              <button
+                onClick={handleSpeak}
+                className={`speech-button ${isSpeaking ? 'stop' : 'speak'}`}
+                title={isSpeaking ? 'रोकें / Stop' : 'सुनें / Listen'}
+              >
+                {isSpeaking ? <VolumeX size={24} className="text-white" /> : <Volume2 size={24} className="text-white" />}
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="main-content">
-        {/* District Selector Card - Using new selector-card class */}
+        {/* District Selector Card */}
         <div className="selector-card">
           <div className="selector-header">
             <MapPin className="selector-header-icon" size={24} />
-            <h2 className="selector-title">
-              अपना जिला चुनें / Select Your District
-            </h2>
+            <h2 className="selector-title">{t.selectDistrict}</h2>
           </div>
           
           {detectingLocation && (
             <div className="location-status">
-              <p className="text-blue-700 text-sm">📍 आपका स्थान खोजा जा रहा है...</p>
+              <p className="text-blue-700 text-sm">{t.detectingLocation}</p>
             </div>
           )}
           
@@ -168,6 +271,7 @@ const Dashboard: React.FC = () => {
             districts={districts}
             selectedDistrict={selectedDistrict}
             onChange={handleDistrictChange}
+            language={language}
           />
         </div>
 
@@ -177,29 +281,29 @@ const Dashboard: React.FC = () => {
             <PerformanceCards 
               data={performanceData[0]} 
               districtName={selectedDistrict.district_name}
+              language={language}
             />
             
             <div className="my-8">
-              <TrendsChart data={performanceData} />
+              <TrendsChart data={performanceData} language={language} />
             </div>
           </>
         )}
 
-        {/* No Data State - Using new no-data-card class */}
+        {/* No Data State */}
         {selectedDistrict && performanceData.length === 0 && !loading && (
           <div className="no-data-card text-center">
-            {/* Keeping the icon but ensuring it uses proper classes */}
-            <Briefcase className="mx-auto text-gray-400 mb-4" size={64} /> 
+            <Briefcase className="mx-auto text-gray-400 mb-4" size={64} />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              कोई डेटा उपलब्ध नहीं
+              {t.noDataTitle}
             </h3>
             <p className="text-gray-500">
-              इस जिले के लिए प्रदर्शन डेटा उपलब्ध नहीं है।
+              {t.noDataMessage}
             </p>
           </div>
         )}
 
-        {/* Error State - Using new error-box class */}
+        {/* Error State */}
         {error && (
           <div className="error-box mb-8">
             <p className="text-red-700">{error}</p>
@@ -207,11 +311,10 @@ const Dashboard: React.FC = () => {
         )}
       </main>
 
-      {/* Footer - Using new footer classes */}
+      {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <p>Data Source: Ministry of Rural Development, Government of India</p>
-          <p className="mt-1">डेटा स्रोत: ग्रामीण विकास मंत्रालय, भारत सरकार</p>
+          <p>{t.dataSource}</p>
         </div>
       </footer>
     </div>

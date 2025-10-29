@@ -40,28 +40,6 @@ export async function getDistrictPerformance(
   }
 }
 
-// Get latest performance for a district
-export async function getLatestPerformance(
-  districtCode: string
-): Promise<DistrictPerformance | null> {
-  try {
-    const { data, error } = await supabase
-      .from('district_performance')
-      .select('*')
-      .eq('district_code', districtCode)
-      .order('fin_year', { ascending: false })
-      .order('month', { ascending: false })
-      .limit(1)
-      .single();
-    
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error fetching latest performance:', error);
-    return null;
-  }
-}
-
 // Detect user location using browser geolocation
 export async function detectUserLocation(): Promise<{ lat: number; lng: number } | null> {
   try {
@@ -107,7 +85,6 @@ export async function getDistrictFromCoordinates(
     const data = await response.json();
     
     if (data.results && data.results.length > 0) {
-      // Extract district from address components
       for (const result of data.results) {
         for (const component of result.address_components) {
           if (component.types.includes('administrative_area_level_3')) {
@@ -123,11 +100,73 @@ export async function getDistrictFromCoordinates(
   }
 }
 
-// Text-to-Speech using browser's built-in API
+// UPDATED: Google Cloud Text-to-Speech function
+export async function speakWithGoogleTTS(text: string, lang: string = 'hi-IN'): Promise<void> {
+  try {
+    const apiKey = import.meta.env.VITE_GOOGLE_TTS_API_KEY;
+    
+    if (!apiKey) {
+      console.warn('Google TTS API key not found, falling back to browser TTS');
+      speakText(text, lang);
+      return;
+    }
+
+    const response = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input: { text },
+          voice: {
+            languageCode: lang,
+            name: lang === 'hi-IN' ? 'hi-IN-Wavenet-D' : 'en-IN-Wavenet-D',
+            ssmlGender: 'NEUTRAL'
+          },
+          audioConfig: {
+            audioEncoding: 'MP3',
+            pitch: 0,
+            speakingRate: 0.9
+          }
+        })
+      }
+    );
+
+    const data = await response.json();
+    
+    if (data.audioContent) {
+      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      audio.play();
+      
+      (window as any).currentTTSAudio = audio;
+    } else {
+      throw new Error('No audio content received');
+    }
+  } catch (error) {
+    console.error('Error with Google TTS:', error);
+    speakText(text, lang);
+  }
+}
+
+// UPDATED: Stop speaking function for both browser and Google TTS
+export function stopSpeaking(): void {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  
+  if ((window as any).currentTTSAudio) {
+    (window as any).currentTTSAudio.pause();
+    (window as any).currentTTSAudio.currentTime = 0;
+    (window as any).currentTTSAudio = null;
+  }
+}
+
+// Keep existing speakText function as fallback
 export function speakText(text: string, lang: string = 'hi-IN'): void {
   try {
     if ('speechSynthesis' in window) {
-      // Cancel any ongoing speech
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(text);
@@ -140,12 +179,5 @@ export function speakText(text: string, lang: string = 'hi-IN'): void {
     }
   } catch (error) {
     console.error('Error with text-to-speech:', error);
-  }
-}
-
-// Stop any ongoing speech
-export function stopSpeaking(): void {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
   }
 }

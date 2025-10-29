@@ -6,9 +6,9 @@ interface Props {
   districts: District[];
   selectedDistrict: District | null;
   onChange: (district: District) => void;
+  language: 'hi' | 'en';
 }
-
-const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChange }) => {
+const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChange, language }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +113,7 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
       <div className="district-input-wrapper">
         <input
           type="text"
-          placeholder="-- जिला चुनें / Search District --"
+          placeholder={language === 'hi' ? '-- जिला चुनें / Search District --' : '-- Select District / Search --'}
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={handleInputFocus}

@@ -119,3 +119,113 @@ export function formatNumberForSpeech(num: number): string {
   
   return (num < 0 ? 'minus ' : '') + text.trim();
 }
+
+
+// ADDED: Convert numbers to Hindi words for better TTS pronunciation
+export function numberToHindiWords(num: number): string {
+  if (num === 0) return 'shunya';
+  
+  const absNum = Math.abs(num);
+  let words = '';
+  
+  // Crores (10,000,000)
+  if (absNum >= 10000000) {
+    const crores = Math.floor(absNum / 10000000);
+    words += `${numberToWordsUnder100(crores)} crore `;
+    const remainder = absNum % 10000000;
+    if (remainder >= 100000) {
+      const lakhs = Math.floor(remainder / 100000);
+      words += `${numberToWordsUnder100(lakhs)} lakh `;
+      const finalRemainder = remainder % 100000;
+      if (finalRemainder >= 1000) {
+        const thousands = Math.floor(finalRemainder / 1000);
+        words += `${numberToWordsUnder100(thousands)} hazaar `;
+        const lastDigits = finalRemainder % 1000;
+        if (lastDigits > 0) {
+          words += `${numberToWordsUnder1000(lastDigits)} `;
+        }
+      }
+    }
+  }
+  // Lakhs (100,000)
+  else if (absNum >= 100000) {
+    const lakhs = Math.floor(absNum / 100000);
+    words += `${numberToWordsUnder100(lakhs)} lakh `;
+    const remainder = absNum % 100000;
+    if (remainder >= 1000) {
+      const thousands = Math.floor(remainder / 1000);
+      words += `${numberToWordsUnder100(thousands)} hazaar `;
+      const lastDigits = remainder % 1000;
+      if (lastDigits > 0) {
+        words += `${numberToWordsUnder1000(lastDigits)} `;
+      }
+    }
+  }
+  // Thousands (1,000)
+  else if (absNum >= 1000) {
+    const thousands = Math.floor(absNum / 1000);
+    words += `${numberToWordsUnder100(thousands)} hazaar `;
+    const remainder = absNum % 1000;
+    if (remainder > 0) {
+      words += `${numberToWordsUnder1000(remainder)} `;
+    }
+  }
+  // Less than 1000
+  else {
+    words = numberToWordsUnder1000(absNum);
+  }
+  
+  return words.trim();
+}
+
+function numberToWordsUnder100(num: number): string {
+  const ones = ['', 'ek', 'do', 'teen', 'chaar', 'paanch', 'chhey', 'saat', 'aath', 'nau'];
+  const teens = ['das', 'gyarah', 'barah', 'terah', 'chaudah', 'pandrah', 'solah', 'satrah', 'atharah', 'unees'];
+  const tens = ['', '', 'bees', 'tees', 'chaalees', 'pachaas', 'saath', 'sattar', 'assi', 'nabbe'];
+  
+  if (num < 10) return ones[num];
+  if (num < 20) return teens[num - 10];
+  
+  const tenDigit = Math.floor(num / 10);
+  const oneDigit = num % 10;
+  
+  // Special cases for Hindi numbers (21-99)
+  const special: { [key: number]: string } = {
+    21: 'ikkees', 22: 'baees', 23: 'teyees', 24: 'chaubees', 25: 'pachchees',
+    26: 'chhabbees', 27: 'sattaees', 28: 'atthaees', 29: 'untees',
+    31: 'iktees', 32: 'battees', 33: 'taintees', 34: 'chautees', 35: 'paintees',
+    36: 'chhattees', 37: 'sayntees', 38: 'adtees', 39: 'untaalees',
+    41: 'iktaalees', 42: 'bayaalees', 43: 'taintaalees', 44: 'chavaalees', 45: 'paintaalees',
+    46: 'chhiyaalees', 47: 'sayntaalees', 48: 'adtaalees', 49: 'unchaas',
+    51: 'ikyaavan', 52: 'baavan', 53: 'tirpan', 54: 'chauvan', 55: 'pachpan',
+    56: 'chhappan', 57: 'sattaavan', 58: 'athavan', 59: 'unsath',
+    61: 'iksath', 62: 'baasath', 63: 'tirsath', 64: 'chausath', 65: 'painsath',
+    66: 'chhiyaasath', 67: 'sadsath', 68: 'adsath', 69: 'unhattar',
+    71: 'ikhattar', 72: 'bahattar', 73: 'tihattar', 74: 'chauhattar', 75: 'pachhattar',
+    76: 'chhihattar', 77: 'satattar', 78: 'athattar', 79: 'unassi',
+    81: 'ikyaasi', 82: 'bayaasi', 83: 'tiraasi', 84: 'chauraasi', 85: 'panchaasi',
+    86: 'chhiyaasi', 87: 'sataasi', 88: 'athaasi', 89: 'navasi',
+    91: 'ikyaanve', 92: 'baanve', 93: 'tiraanve', 94: 'chauraanve', 95: 'panchaanve',
+    96: 'chhiyaanve', 97: 'sataanve', 98: 'athaanve', 99: 'ninyaanve'
+  };
+  
+  if (special[num]) return special[num];
+  
+  return oneDigit === 0 ? tens[tenDigit] : `${tens[tenDigit]} ${ones[oneDigit]}`;
+}
+
+function numberToWordsUnder1000(num: number): string {
+  if (num < 100) return numberToWordsUnder100(num);
+  
+  const hundreds = Math.floor(num / 100);
+  const remainder = num % 100;
+  
+  const ones = ['', 'ek', 'do', 'teen', 'chaar', 'paanch', 'chhey', 'saat', 'aath', 'nau'];
+  let words = `${ones[hundreds]} sau`;
+  
+  if (remainder > 0) {
+    words += ` ${numberToWordsUnder100(remainder)}`;
+  }
+  
+  return words;
+}
