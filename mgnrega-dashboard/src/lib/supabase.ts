@@ -74,3 +74,48 @@ export function formatNumber(num: number): string {
 export function formatCurrency(num: number): string {
   return `₹${formatNumber(num)}`;
 }
+
+// 🟢 NEW: Helper function to format numbers into Hindi text for speech (Lakhs/Crores)
+export function formatNumberForSpeech(num: number): string {
+  if (num === 0) return 'shoonya'; // zero
+
+  // Use absolute value for calculation, append negative sign later if needed
+  const absNum = Math.abs(num);
+  let text = '';
+  
+  if (absNum >= 10000000) {
+    const crores = Math.floor(absNum / 10000000);
+    const remainderLakhs = Math.round((absNum % 10000000) / 100000);
+    
+    text += `${crores} Crore`;
+    if (remainderLakhs > 0) {
+      text += ` ${remainderLakhs} Lakh`;
+    }
+  } else if (absNum >= 100000) {
+    const lakhs = Math.floor(absNum / 100000);
+    const remainderThousands = Math.round((absNum % 100000) / 1000);
+    
+    text += `${lakhs} Lakh`;
+    if (remainderThousands > 0) {
+      text += ` ${remainderThousands} Hazaar`;
+    }
+  } else if (absNum >= 1000) {
+    const thousands = Math.floor(absNum / 1000);
+    const remainder = Math.round(absNum % 1000);
+
+    text += `${thousands} Hazaar`;
+    if (remainder > 0) {
+      text += ` ${remainder}`;
+    }
+  } else {
+    text = absNum.toFixed(0);
+  }
+  
+  // Prepend "Rupay" for currency
+  if (num === absNum) {
+      // Clean up extra spaces
+      return text.trim();
+  }
+  
+  return (num < 0 ? 'minus ' : '') + text.trim();
+}
