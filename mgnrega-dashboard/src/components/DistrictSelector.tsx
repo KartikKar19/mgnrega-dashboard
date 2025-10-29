@@ -81,12 +81,17 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
       setTimeout(() => {
           if (!containerRef.current?.contains(document.activeElement)) {
               // If nothing was selected, revert to the last selected district name or clear
-              if (selectedDistrict) {
+              
+              // FIX: Only revert the search term to the selected district's name if 
+              // the user explicitly cleared the input (searchTerm === ''). 
+              // This allows new search terms to persist on blur.
+              if (selectedDistrict && searchTerm === '') {
                   setSearchTerm(selectedDistrict.district_name);
               } else if (!selectedDistrict && searchTerm) {
-                   // If they typed something but didn't select, clear the input
+                   // If they typed something but didn't select and no district is selected, clear the input
                    setSearchTerm('');
               }
+              
               setIsOpen(false);
           }
       }, 100);
