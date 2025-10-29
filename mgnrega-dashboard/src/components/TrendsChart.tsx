@@ -17,10 +17,10 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
   }));
 
   return (
-    <div className="space-y-8">
+    <div className="chart-title-group">
       {/* Workers Trend */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
+      <div className="chart-card">
+        <h3 className="chart-title">
           कामगार प्रवृत्ति / Workers Trend
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -42,8 +42,8 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
       </div>
 
       {/* Wages Trend */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
+      <div className="chart-card">
+        <h3 className="chart-title">
           वेतन प्रवृत्ति (लाख में) / Wages Trend (in Lakhs)
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -59,8 +59,8 @@ const TrendsChart: React.FC<Props> = ({ data }) => {
       </div>
 
       {/* Households & Women */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-4">
+      <div className="chart-card">
+        <h3 className="chart-title">
           परिवार और महिला कार्य दिवस / Households & Women Persondays
         </h3>
         <ResponsiveContainer width="100%" height={300}>

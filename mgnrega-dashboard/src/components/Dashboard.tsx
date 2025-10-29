@@ -113,62 +113,56 @@ const Dashboard: React.FC = () => {
 
   if (loading && districts.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-lg">लोड हो रहा है...</p>
+      <div className="loading-screen">
+        <div className="loading-indicator">
+          <div className="animate-spin loading-spinner"></div>
+          <p className="loading-text">लोड हो रहा है...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
+    <div className="dashboard-layout">
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png" 
-                alt="India Flag" 
-                className="h-10 w-15"
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-green-700">MGNREGA Dashboard</h1>
-                <p className="text-sm text-gray-600">मनरेगा प्रदर्शन डैशबोर्ड</p>
-              </div>
+      <header className="header-sticky">
+        <div className="header-content">
+          <div className="header-logo-group">
+            <img 
+              src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png" 
+              alt="India Flag" 
+              className="h-10 w-15"
+            />
+            <div>
+              <h1 className="header-title">MGNREGA Dashboard</h1>
+              <p className="header-subtitle">मनरेगा प्रदर्शन डैशबोर्ड</p>
             </div>
-            
-            {selectedDistrict && (
-              <button
-                onClick={handleSpeak}
-                className={`p-3 rounded-full transition-all ${
-                  isSpeaking 
-                    ? 'bg-red-500 hover:bg-red-600' 
-                    : 'bg-blue-500 hover:bg-blue-600'
-                } text-white shadow-lg`}
-                title={isSpeaking ? 'रोकें' : 'सुनें'}
-              >
-                {isSpeaking ? <VolumeX size={24} /> : <Volume2 size={24} />}
-              </button>
-            )}
           </div>
+          
+          {selectedDistrict && (
+            <button
+              onClick={handleSpeak}
+              className={`speech-button ${isSpeaking ? 'stop' : 'speak'}`}
+              title={isSpeaking ? 'रोकें' : 'सुनें'}
+            >
+              {isSpeaking ? <VolumeX size={24} className="text-white" /> : <Volume2 size={24} className="text-white" />}
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="main-content">
         {/* District Selector */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="flex items-center space-x-2 mb-4">
-            <MapPin className="text-green-600" size={24} />
-            <h2 className="text-xl font-semibold text-gray-800">
+        <div className="selector-card">
+          <div className="selector-header">
+            <MapPin className="selector-header-icon" size={24} />
+            <h2 className="selector-title">
               अपना जिला चुनें / Select Your District
             </h2>
           </div>
           
           {detectingLocation && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="location-status">
               <p className="text-blue-700 text-sm">📍 आपका स्थान खोजा जा रहा है...</p>
             </div>
           )}
@@ -194,7 +188,7 @@ const Dashboard: React.FC = () => {
 
         {/* No Data State */}
         {selectedDistrict && performanceData.length === 0 && !loading && (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <div className="no-data-card text-center">
             <Briefcase className="mx-auto text-gray-400 mb-4" size={64} />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
               कोई डेटा उपलब्ध नहीं
@@ -207,15 +201,15 @@ const Dashboard: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+          <div className="error-box mb-8">
             <p className="text-red-700">{error}</p>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t mt-16 py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-600 text-sm">
+      <footer className="footer">
+        <div className="footer-content">
           <p>Data Source: Ministry of Rural Development, Government of India</p>
           <p className="mt-1">डेटा स्रोत: ग्रामीण विकास मंत्रालय, भारत सरकार</p>
         </div>
