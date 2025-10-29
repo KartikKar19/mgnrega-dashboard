@@ -122,11 +122,26 @@ body {
   align-items: center;
   justify-content: space-between;
 }
+
+/* MOBILE HEADER ADJUSTMENTS */
+@media (max-width: 639px) {
+  .header-content {
+    padding: 0.75rem 1rem; /* Smaller padding on mobile */
+  }
+  .header-title {
+    font-size: 1.25rem; /* Slightly smaller title */
+  }
+  .header-logo-group {
+    /* If the title/subtitle gets too long, allow it to wrap/shrink */
+    min-width: 0; 
+  }
+}
+/* END MOBILE HEADER ADJUSTMENTS */
+
 .header-logo-group {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  /* FIX: Removed height: 10px; and width: 10px; to allow child elements (like the flag) to dictate the size. */
 }
 .header-title {
   font-size: 1.5rem;
@@ -148,6 +163,7 @@ body {
   border: none;
   cursor: pointer;
   transition: background-color 0.2s;
+  flex-shrink: 0; /* Prevent the button from shrinking on mobile */
 }
 .speech-button.speak { background-color: var(--color-primary-base); }
 .speech-button.speak:hover { background-color: var(--color-primary-dark); }
@@ -162,6 +178,18 @@ body {
   flex-grow: 1;
 }
 
+/* MOBILE MAIN CONTENT ADJUSTMENTS */
+@media (max-width: 639px) {
+  .main-content {
+    margin: 1rem auto; /* Smaller top/bottom margin on mobile */
+    padding: 0 1rem; /* Smaller side padding on mobile */
+  }
+  .mb-8 { margin-bottom: 1rem; }
+  .my-8 { margin-top: 1rem; margin-bottom: 1rem; }
+}
+/* END MOBILE MAIN CONTENT ADJUSTMENTS */
+
+
 /* --- District Selector / Selector Card --- */
 .selector-card {
   padding: 1.5rem;
@@ -170,6 +198,20 @@ body {
   box-shadow: var(--shadow-md-lift);
   margin-bottom: 2rem;
 }
+
+/* MOBILE SELECTOR CARD ADJUSTMENTS */
+@media (max-width: 639px) {
+  .selector-card {
+    padding: 1rem; /* Smaller padding */
+    border-radius: var(--radius-xl); /* Slightly smaller radius */
+    margin-bottom: 1.5rem;
+  }
+  .selector-title {
+    font-size: 1.125rem;
+  }
+}
+/* END MOBILE SELECTOR CARD ADJUSTMENTS */
+
 .selector-header {
   display: flex;
   align-items: center;
@@ -267,6 +309,24 @@ body {
   box-shadow: var(--shadow-md-lift);
   margin-bottom: 2rem;
 }
+
+/* MOBILE SUMMARY CARD ADJUSTMENTS */
+@media (max-width: 639px) {
+  .district-summary-card {
+    padding: 1.25rem;
+    border-radius: var(--radius-xl);
+    margin-bottom: 1.5rem;
+  }
+  .district-summary-card h2 {
+    font-size: 1.75rem;
+  }
+  .district-summary-card p {
+    font-size: 0.875rem;
+  }
+}
+/* END MOBILE SUMMARY CARD ADJUSTMENTS */
+
+
 .district-summary-card h2 {
   font-size: 2rem;
   font-weight: 700;
@@ -283,10 +343,16 @@ body {
   gap: 1.5rem;
 }
 @media (min-width: 640px) {
-  .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  .cards-grid { 
+    grid-template-columns: repeat(2, 1fr); /* Tablet layout (2 columns) */
+    gap: 1.25rem; /* Slight reduction in gap */
+  }
 }
 @media (min-width: 1024px) {
-  .cards-grid { grid-template-columns: repeat(3, 1fr); }
+  .cards-grid { 
+    grid-template-columns: repeat(3, 1fr); /* Desktop layout (3 columns) */
+    gap: 1.5rem;
+  }
 }
 
 .card {
@@ -299,6 +365,24 @@ body {
   min-height: 140px;
   transition: transform 0.15s, box-shadow 0.15s;
 }
+/* MOBILE CARD FONT ADJUSTMENTS */
+@media (max-width: 639px) {
+  .card {
+    padding: 1.25rem;
+    min-height: 120px;
+  }
+  .card-value {
+    font-size: 1.75rem;
+  }
+  .card-title {
+    font-size: 0.9rem;
+  }
+  .card-subtitle {
+    font-size: 0.75rem;
+  }
+}
+/* END MOBILE CARD FONT ADJUSTMENTS */
+
 .card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 10px -1px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.06);
@@ -356,8 +440,20 @@ body {
   grid-template-columns: 1fr;
   gap: 1.5rem;
 }
+
+/* TABLET CHART LAYOUT */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .chart-title-group {
+    grid-template-columns: 1fr; /* Keep single column layout on smaller tablets in portrait, to ensure chart is wide enough */
+    gap: 1.25rem;
+  }
+}
+/* DESKTOP CHART LAYOUT */
 @media (min-width: 1024px) {
-  .chart-title-group { grid-template-columns: repeat(2, 1fr); }
+  .chart-title-group { 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 1.5rem;
+  }
   .chart-card:last-child { grid-column: 1 / -1; }
 }
 
@@ -367,6 +463,20 @@ body {
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-md-lift);
 }
+
+/* MOBILE CHART CARD ADJUSTMENTS */
+@media (max-width: 639px) {
+  .chart-card {
+    padding: 1rem;
+    border-radius: var(--radius-xl);
+  }
+  .chart-title {
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+  }
+}
+/* END MOBILE CHART CARD ADJUSTMENTS */
+
 
 .chart-title {
   font-size: 1.25rem;
@@ -417,6 +527,12 @@ body {
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-md-lift);
 }
+@media (max-width: 639px) {
+  .no-data-card {
+    padding: 2.5rem 1.5rem;
+    border-radius: var(--radius-xl);
+  }
+}
 .error-box {
   padding: 1rem;
   background-color: var(--color-danger-bg);
@@ -442,3 +558,17 @@ body {
 .footer-content p {
   font-size: 0.875rem;
 }
+/* MOBILE FOOTER ADJUSTMENTS */
+@media (max-width: 639px) {
+  .footer {
+    padding: 1rem 0;
+    margin-top: 1.5rem;
+  }
+  .footer-content p {
+    font-size: 0.75rem;
+  }
+  .footer-content .mt-1 {
+    margin-top: 0.25rem;
+  }
+}
+/* END MOBILE FOOTER ADJUSTMENTS */
