@@ -1,0 +1,227 @@
+import React, { useState, useEffect } from 'react';
+import { MapPin, TrendingUp, Users, Briefcase, Volume2, VolumeX } from 'lucide-react';
+import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakText, stopSpeaking } from '../services/api';
+import type { District, DistrictPerformance } from '../lib/supabase';
+import { formatNumber, formatCurrency } from '../lib/supabase';
+import DistrictSelector from './DistrictSelector';
+import PerformanceCards from './PerformanceCards';
+import TrendsChart from './TrendsChart';
+
+const Dashboard: React.FC = () => {
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+  const [performanceData, setPerformanceData] = useState<DistrictPerformance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load districts on mount
+  useEffect(() => {
+    loadDistricts();
+  }, []);
+
+  // Auto-detect location on mount
+  useEffect(() => {
+    autoDetectDistrict();
+  }, [districts]);
+
+  const loadDistricts = async () => {
+    try {
+      setLoading(true);
+      const data = await getDistricts();
+      setDistricts(data);
+    } catch (err) {
+      setError('Failed to load districts');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const autoDetectDistrict = async () => {
+    if (districts.length === 0) return;
+    
+    try {
+      setDetectingLocation(true);
+      const location = await detectUserLocation();
+      
+      if (location) {
+        const districtName = await getDistrictFromCoordinates(location.lat, location.lng);
+        
+        if (districtName) {
+          // Find matching district
+          const matchedDistrict = districts.find(d => 
+            d.district_name.toLowerCase().includes(districtName.toLowerCase()) ||
+            districtName.toLowerCase().includes(d.district_name.toLowerCase())
+          );
+          
+          if (matchedDistrict) {
+            setSelectedDistrict(matchedDistrict);
+            loadPerformanceData(matchedDistrict.district_code);
+          }
+        }
+      }
+    } catch (err) {
+      console.log('Could not auto-detect location:', err);
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
+  const loadPerformanceData = async (districtCode: string) => {
+    try {
+      setLoading(true);
+      const data = await getDistrictPerformance(districtCode);
+      setPerformanceData(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load performance data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDistrictChange = (district: District) => {
+    setSelectedDistrict(district);
+    loadPerformanceData(district.district_code);
+    stopSpeaking();
+    setIsSpeaking(false);
+  };
+
+  const handleSpeak = () => {
+    if (!selectedDistrict || performanceData.length === 0) return;
+    
+    if (isSpeaking) {
+      stopSpeaking();
+      setIsSpeaking(false);
+    } else {
+      const latest = performanceData[0];
+      const text = `${selectedDistrict.district_name} जिले में MGNREGA प्रदर्शन। 
+        कुल कामगार: ${formatNumber(latest.Total_No_of_Workers)}। 
+        कुल वेतन: ${formatCurrency(latest.Wages)}। 
+        महिला कार्य दिवस: ${formatNumber(latest.Women_Persondays)}।`;
+      
+      speakText(text, 'hi-IN');
+      setIsSpeaking(true);
+      
+      // Reset after speaking
+      setTimeout(() => setIsSpeaking(false), 5000);
+    }
+  };
+
+  if (loading && districts.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 text-lg">लोड हो रहा है...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-green-50">
+      {/* Header */}
+      <header className="bg-white shadow-md sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png" 
+                alt="India Flag" 
+                className="h-10 w-15"
+              />
+              <div>
+                <h1 className="text-2xl font-bold text-green-700">MGNREGA Dashboard</h1>
+                <p className="text-sm text-gray-600">मनरेगा प्रदर्शन डैशबोर्ड</p>
+              </div>
+            </div>
+            
+            {selectedDistrict && (
+              <button
+                onClick={handleSpeak}
+                className={`p-3 rounded-full transition-all ${
+                  isSpeaking 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-blue-500 hover:bg-blue-600'
+                } text-white shadow-lg`}
+                title={isSpeaking ? 'रोकें' : 'सुनें'}
+              >
+                {isSpeaking ? <VolumeX size={24} /> : <Volume2 size={24} />}
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* District Selector */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+          <div className="flex items-center space-x-2 mb-4">
+            <MapPin className="text-green-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-800">
+              अपना जिला चुनें / Select Your District
+            </h2>
+          </div>
+          
+          {detectingLocation && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-700 text-sm">📍 आपका स्थान खोजा जा रहा है...</p>
+            </div>
+          )}
+          
+          <DistrictSelector
+            districts={districts}
+            selectedDistrict={selectedDistrict}
+            onChange={handleDistrictChange}
+          />
+        </div>
+
+        {/* Performance Data */}
+        {selectedDistrict && performanceData.length > 0 && (
+          <>
+            <PerformanceCards 
+              data={performanceData[0]} 
+              districtName={selectedDistrict.district_name}
+            />
+            
+            <TrendsChart data={performanceData} />
+          </>
+        )}
+
+        {/* No Data State */}
+        {selectedDistrict && performanceData.length === 0 && !loading && (
+          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+            <Briefcase className="mx-auto text-gray-400 mb-4" size={64} />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              कोई डेटा उपलब्ध नहीं
+            </h3>
+            <p className="text-gray-500">
+              इस जिले के लिए प्रदर्शन डेटा उपलब्ध नहीं है।
+            </p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-16 py-6">
+        <div className="max-w-7xl mx-auto px-4 text-center text-gray-600 text-sm">
+          <p>Data Source: Ministry of Rural Development, Government of India</p>
+          <p className="mt-1">डेटा स्रोत: ग्रामीण विकास मंत्रालय, भारत सरकार</p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Dashboard;
