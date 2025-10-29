@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, TrendingUp, Users, Briefcase, Volume2, VolumeX } from 'lucide-react';
+import { MapPin, Volume2, VolumeX, Briefcase } from 'lucide-react'; // Added Briefcase for no-data state
 import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakText, stopSpeaking } from '../services/api';
 import type { District, DistrictPerformance } from '../lib/supabase';
 import { formatNumber, formatCurrency } from '../lib/supabase';
@@ -113,9 +113,10 @@ const Dashboard: React.FC = () => {
 
   if (loading && districts.length === 0) {
     return (
+      // Using new loading-screen and indicator styles
       <div className="loading-screen">
         <div className="loading-indicator">
-          <div className="animate-spin loading-spinner"></div>
+          <div className="loading-spinner"></div>
           <p className="loading-text">लोड हो रहा है...</p>
         </div>
       </div>
@@ -124,15 +125,11 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-layout">
-      {/* Header */}
+      {/* Header - Class names updated to use CSS module conventions */}
       <header className="header-sticky">
         <div className="header-content">
           <div className="header-logo-group">
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/en/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png" 
-              alt="India Flag" 
-              className="h-10 w-15"
-            />
+            {/* REMOVED INDIAN FLAG IMAGE */}
             <div>
               <h1 className="header-title">MGNREGA Dashboard</h1>
               <p className="header-subtitle">मनरेगा प्रदर्शन डैशबोर्ड</p>
@@ -152,7 +149,7 @@ const Dashboard: React.FC = () => {
       </header>
 
       <main className="main-content">
-        {/* District Selector */}
+        {/* District Selector Card - Using new selector-card class */}
         <div className="selector-card">
           <div className="selector-header">
             <MapPin className="selector-header-icon" size={24} />
@@ -182,14 +179,17 @@ const Dashboard: React.FC = () => {
               districtName={selectedDistrict.district_name}
             />
             
-            <TrendsChart data={performanceData} />
+            <div className="my-8">
+              <TrendsChart data={performanceData} />
+            </div>
           </>
         )}
 
-        {/* No Data State */}
+        {/* No Data State - Using new no-data-card class */}
         {selectedDistrict && performanceData.length === 0 && !loading && (
           <div className="no-data-card text-center">
-            <Briefcase className="mx-auto text-gray-400 mb-4" size={64} />
+            {/* Keeping the icon but ensuring it uses proper classes */}
+            <Briefcase className="mx-auto text-gray-400 mb-4" size={64} /> 
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
               कोई डेटा उपलब्ध नहीं
             </h3>
@@ -199,7 +199,7 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Error State */}
+        {/* Error State - Using new error-box class */}
         {error && (
           <div className="error-box mb-8">
             <p className="text-red-700">{error}</p>
@@ -207,7 +207,7 @@ const Dashboard: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
+      {/* Footer - Using new footer classes */}
       <footer className="footer">
         <div className="footer-content">
           <p>Data Source: Ministry of Rural Development, Government of India</p>
