@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Volume2, VolumeX, Briefcase, Languages } from 'lucide-react';
 import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakWithGoogleTTS, stopSpeaking } from '../services/api';
 import type { District, DistrictPerformance } from '../lib/supabase';
-import { formatNumber, formatCurrency, numberToHindiWords } from '../lib/supabase';
+import { numberToHindiWords } from '../lib/supabase';
 import DistrictSelector from './DistrictSelector';
 import PerformanceCards from './PerformanceCards';
 import TrendsChart from './TrendsChart';
