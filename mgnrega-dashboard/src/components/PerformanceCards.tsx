@@ -6,11 +6,10 @@ import { formatNumber, formatCurrency } from '../lib/supabase';
 interface Props {
   data: DistrictPerformance;
   districtName: string;
-  language: 'hi' | 'en'; // ADDED
+  language: 'hi' | 'en';
 }
 
 const PerformanceCards: React.FC<Props> = ({ data, districtName, language }) => {
-  // ADDED: Translation object for card labels
   const translations = {
     hi: {
       totalWorkers: 'कुल कामगार',

@@ -650,7 +650,6 @@ body {
   font-weight: 600;
 }
 
-/* Responsive adjustments for language button */
 @media (max-width: 639px) {
   .language-button {
     padding: 0.5rem;

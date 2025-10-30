@@ -5,11 +5,10 @@ import { formatNumber } from '../lib/supabase';
 
 interface Props {
   data: DistrictPerformance[];
-  language: 'hi' | 'en'; // ADDED
+  language: 'hi' | 'en';
 }
 
 const TrendsChart: React.FC<Props> = ({ data, language }) => {
-  // ADDED: Translation object for chart labels
   const translations = {
     hi: {
       workersTrend: 'कामगार प्रवृत्ति',
@@ -41,18 +40,16 @@ const TrendsChart: React.FC<Props> = ({ data, language }) => {
 
   const t = translations[language];
 
-  // Prepare data for charts (reverse to show oldest to newest)
   const chartData = [...data].reverse().map(d => ({
     period: `${d.month.substring(0, 3)} ${d.fin_year.substring(2)}`,
     workers: d.Total_No_of_Workers,
-    wages: d.Wages / 100000, // Convert to lakhs
+    wages: d.Wages / 100000, 
     households: d.Total_Households_Worked,
     women: d.Women_Persondays
   }));
 
   return (
     <div className="chart-title-group"> 
-      {/* Workers Trend */}
       <div className="chart-card">
         <h3 className="chart-title">
           {language === 'hi' ? t.workersTrend : t.workersTrend}
@@ -85,7 +82,6 @@ const TrendsChart: React.FC<Props> = ({ data, language }) => {
         </ResponsiveContainer>
       </div>
 
-      {/* Wages Trend */}
       <div className="chart-card">
         <h3 className="chart-title">
           {language === 'hi' ? t.wagesTrend : t.wagesTrend}
@@ -107,7 +103,6 @@ const TrendsChart: React.FC<Props> = ({ data, language }) => {
         </ResponsiveContainer>
       </div>
 
-      {/* Households & Women */}
       <div className="chart-card">
         <h3 className="chart-title">
           {language === 'hi' ? t.householdsWomen : t.householdsWomen}

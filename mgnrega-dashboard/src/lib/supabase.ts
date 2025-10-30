@@ -9,7 +9,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Types matching your CSV structure
 export interface District {
   id: number;
   state_code: string;
@@ -62,7 +61,6 @@ export interface DistrictPerformance {
   last_updated: string;
 }
 
-// Helper function to format numbers for display
 export function formatNumber(num: number): string {
   if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Cr`; // Crores
   if (num >= 100000) return `${(num / 100000).toFixed(2)} L`; // Lakhs
@@ -70,17 +68,18 @@ export function formatNumber(num: number): string {
   return num.toFixed(0);
 }
 
-// Helper to format currency
 export function formatCurrency(num: number): string {
   return `₹${formatNumber(num)}`;
 }
 
-// 🟢 NEW: Helper function to format numbers into Hindi text for speech (Lakhs/Crores)
 export function formatNumberForSpeech(num: number): string {
   if (num === 0) return 'shoonya'; // zero
-
-  // Use absolute value for calculation, append negative sign later if needed
-  const absNum = Math.abs(num);
+  let absNum = Math.abs(num);
+  if (absNum >= 100000) {
+    absNum = Math.round(absNum / 1000) * 1000;
+  } else if (absNum >= 1000) {
+    absNum = Math.round(absNum / 100) * 100;
+  }
   let text = '';
   
   if (absNum >= 10000000) {
@@ -111,9 +110,7 @@ export function formatNumberForSpeech(num: number): string {
     text = absNum.toFixed(0);
   }
   
-  // Prepend "Rupay" for currency
   if (num === absNum) {
-      // Clean up extra spaces
       return text.trim();
   }
   
@@ -121,14 +118,18 @@ export function formatNumberForSpeech(num: number): string {
 }
 
 
-// ADDED: Convert numbers to Hindi words for better TTS pronunciation
+
 export function numberToHindiWords(num: number): string {
-  if (num === 0) return 'shunya';
+  let absNum = Math.abs(num); 
   
-  const absNum = Math.abs(num);
+  if (absNum >= 100000) {
+    absNum = Math.round(absNum / 1000) * 1000;
+  } else if (absNum >= 1000) {
+    absNum = Math.round(absNum / 100) * 100;
+  }
+  if (absNum === 0) return 'shunya'; 
+  
   let words = '';
-  
-  // Crores (10,000,000)
   if (absNum >= 10000000) {
     const crores = Math.floor(absNum / 10000000);
     words += `${numberToWordsUnder100(crores)} crore `;
@@ -161,7 +162,6 @@ export function numberToHindiWords(num: number): string {
       }
     }
   }
-  // Thousands (1,000)
   else if (absNum >= 1000) {
     const thousands = Math.floor(absNum / 1000);
     words += `${numberToWordsUnder100(thousands)} hazaar `;
@@ -170,7 +170,6 @@ export function numberToHindiWords(num: number): string {
       words += `${numberToWordsUnder1000(remainder)} `;
     }
   }
-  // Less than 1000
   else {
     words = numberToWordsUnder1000(absNum);
   }
@@ -189,7 +188,6 @@ function numberToWordsUnder100(num: number): string {
   const tenDigit = Math.floor(num / 10);
   const oneDigit = num % 10;
   
-  // Special cases for Hindi numbers (21-99)
   const special: { [key: number]: string } = {
     21: 'ikkees', 22: 'baees', 23: 'teyees', 24: 'chaubees', 25: 'pachchees',
     26: 'chhabbees', 27: 'sattaees', 28: 'atthaees', 29: 'untees',

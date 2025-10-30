@@ -100,7 +100,6 @@ export async function getDistrictFromCoordinates(
   }
 }
 
-// UPDATED: Google Cloud Text-to-Speech function
 export async function speakWithGoogleTTS(text: string, lang: string = 'hi-IN'): Promise<void> {
   try {
     const apiKey = import.meta.env.VITE_GOOGLE_TTS_API_KEY;
@@ -150,7 +149,6 @@ export async function speakWithGoogleTTS(text: string, lang: string = 'hi-IN'): 
   }
 }
 
-// UPDATED: Stop speaking function for both browser and Google TTS
 export function stopSpeaking(): void {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
@@ -163,7 +161,6 @@ export function stopSpeaking(): void {
   }
 }
 
-// Keep existing speakText function as fallback
 export function speakText(text: string, lang: string = 'hi-IN'): void {
   try {
     if ('speechSynthesis' in window) {
