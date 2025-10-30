@@ -6,7 +6,7 @@ interface Props {
   districts: District[];
   selectedDistrict: District | null;
   onChange: (district: District) => void;
-  language: 'hi' | 'en';
+  language: 'en' | 'hi' | 'pa' | 'bn' | 'ta' | 'te' | 'gu' | 'mr' | 'kn';
 }
 const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChange, language }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,6 +84,19 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
       }, 100);
   };
   
+  const placeholders = {
+    hi: { placeholder: '-- जिला चुनें / Search District --', noData: 'कोई जिला नहीं मिला / No district found' },
+    en: { placeholder: '-- Select District / Search --', noData: 'No district found / कोई जिला नहीं मिला' },
+    mr: { placeholder: '-- जिल्हा निवडा / Search District --', noData: 'जिल्हा सापडला नाही / No district found' },
+    kn: { placeholder: '-- ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ / Search District --', noData: 'ಯಾವುದೇ ಜಿಲ್ಲೆ ಕಂಡುಬಂದಿಲ್ಲ / No district found' },
+    pa: { placeholder: '-- ਜ਼ਿਲ੍ਹਾ ਚੁਣੋ / Search District --', noData: 'ਕੋਈ ਜ਼ਿਲ੍ਹਾ ਨਹੀਂ ਲੱਭਿਆ / No district found' },
+    bn: { placeholder: '-- জেলা নির্বাচন করুন / Search District --', noData: 'কোন জেলা পাওয়া যায়নি / No district found' },
+    ta: { placeholder: '-- மாவட்டத்தைத் தேர்ந்தெடுக்கவும் / Search District --', noData: 'மாவட்டம் எதுவும் கண்டறியப்படவில்லை / No district found' },
+    te: { placeholder: '-- జిల్లాను ఎంచుకోండి / Search District --', noData: 'జిల్లా ఏదీ కనుగొనబడలేదు / No district found' },
+    gu: { placeholder: '-- જિલ્લો પસંદ કરો / Search District --', noData: 'કોઈ જિલ્લો મળ્યો નથી / No district found' },
+  };
+  
+  const t = placeholders[language] || placeholders.en;
 
   return (
     <div className="district-select-container" ref={containerRef}>
@@ -93,13 +106,13 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
         className="district-select"
         hidden
       >
-        <option value="">-- जिला चुनें / Select District --</option>
+        <option value="">{placeholders.hi.placeholder}</option>
       </select>
       
       <div className="district-input-wrapper">
         <input
           type="text"
-          placeholder={language === 'hi' ? '-- जिला चुनें / Search District --' : '-- Select District / Search --'}
+          placeholder={t.placeholder}
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -130,7 +143,7 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
             ))
           ) : (
             <div className="district-option placeholder">
-              कोई जिला नहीं मिला / No district found
+              {t.noData}
             </div>
           )}
         </div>

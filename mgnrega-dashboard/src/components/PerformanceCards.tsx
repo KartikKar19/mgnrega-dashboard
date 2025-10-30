@@ -6,7 +6,7 @@ import { formatNumber, formatCurrency } from '../lib/supabase';
 interface Props {
   data: DistrictPerformance;
   districtName: string;
-  language: 'hi' | 'en';
+  language: 'en' | 'hi' | 'pa' | 'bn' | 'ta' | 'te' | 'gu' | 'mr' | 'kn';
 }
 
 const PerformanceCards: React.FC<Props> = ({ data, districtName, language }) => {
@@ -42,6 +42,118 @@ const PerformanceCards: React.FC<Props> = ({ data, districtName, language }) => 
       averageWageEn: 'औसत मजदूरी',
       performance: 'Performance for',
       performanceFor: 'का प्रदर्शन'
+    },
+    mr: {
+        totalWorkers: 'एकूण कामगार',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'एकूण वेतन',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'महिला मनुष्यदिवस',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'काम केलेली कुटुंबे',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'पूर्ण झालेली कामे',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'सरासरी वेतन',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'चे कार्यप्रदर्शन',
+        performanceFor: 'Performance for'
+    },
+    kn: {
+        totalWorkers: 'ಒಟ್ಟು ಕಾರ್ಮಿಕರು',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'ಒಟ್ಟು ವೇತನಗಳು',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'ಮಹಿಳಾ ಮಾನವ ದಿನಗಳು',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'ಕೆಲಸ ಮಾಡಿದ ಕುಟುಂಬಗಳು',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'ಪೂರ್ಣಗೊಂಡ ಕೆಲಸಗಳು',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'ಸರಾಸರಿ ವೇತನ',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'ರ ಕಾರ್ಯಕ್ಷಮತೆ',
+        performanceFor: 'Performance for'
+    },
+    pa: {
+        totalWorkers: 'ਕੁੱਲ ਕਰਮਚਾਰੀ',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'ਕੁੱਲ ਤਨਖਾਹ',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'ਮਹਿਲਾ ਕਾਰਜ ਦਿਵਸ',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'ਕੰਮ ਕਰਨ ਵਾਲੇ ਪਰਿਵਾਰ',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'ਮੁਕੰਮਲ ਕਾਰਜ',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'ਔਸਤ ਤਨਖਾਹ',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'ਦਾ ਪ੍ਰਦਰਸ਼ਨ',
+        performanceFor: 'Performance for'
+    },
+    bn: {
+        totalWorkers: 'মোট শ্রমিক',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'মোট মজুরি',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'মহিলা কর্মদিবস',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'কাজ করা পরিবার',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'সমাপ্ত কাজ',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'গড় মজুরি',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'এর কর্মক্ষমতা',
+        performanceFor: 'Performance for'
+    },
+    ta: {
+        totalWorkers: 'மொத்த ஊழியர்கள்',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'மொத்த ஊதியம்',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'பெண் நபர்கள் நாட்கள்',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'வேலை செய்த குடும்பங்கள்',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'முடிக்கப்பட்ட பணிகள்',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'சராசரி ஊதியம்',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'இன் செயல்திறன்',
+        performanceFor: 'Performance for'
+    },
+    te: {
+        totalWorkers: 'మొత్తం కార్మికులు',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'మొత్తం వేతనాలు',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'మహిళా పనిదినాలు',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'పనిచేసిన కుటుంబాలు',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'పూర్తయిన పనులు',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'సగటు వేతనం',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'యొక్క పనితీరు',
+        performanceFor: 'Performance for'
+    },
+    gu: {
+        totalWorkers: 'કુલ કાર્યકરો',
+        totalWorkersEn: 'Total Workers',
+        totalWages: 'કુલ વેતન',
+        totalWagesEn: 'Total Wages',
+        womenPersondays: 'મહિલા માનવ-દિવસો',
+        womenPersondaysEn: 'Women Persondays',
+        householdsWorked: 'કાર્યરત પરિવારો',
+        householdsWorkedEn: 'Households Worked',
+        completedWorks: 'પૂર્ણ થયેલ કાર્યો',
+        completedWorksEn: 'Completed Works',
+        averageWage: 'સરેરાશ વેતન',
+        averageWageEn: 'Average Wage/Day',
+        performance: 'નું પ્રદર્શન',
+        performanceFor: 'Performance for'
     }
   };
 

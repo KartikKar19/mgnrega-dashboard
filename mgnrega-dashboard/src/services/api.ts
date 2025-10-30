@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { District, DistrictPerformance } from '../lib/supabase';
 
-// Fetch all districts from Supabase
 export async function getDistricts(stateCode?: string): Promise<District[]> {
   try {
     let query = supabase.from('districts').select('*');
@@ -20,7 +19,6 @@ export async function getDistricts(stateCode?: string): Promise<District[]> {
   }
 }
 
-// Fetch performance data for a district
 export async function getDistrictPerformance(
   districtCode: string
 ): Promise<DistrictPerformance[]> {
@@ -40,7 +38,6 @@ export async function getDistrictPerformance(
   }
 }
 
-// Detect user location using browser geolocation
 export async function detectUserLocation(): Promise<{ lat: number; lng: number } | null> {
   try {
     return new Promise((resolve, reject) => {
@@ -72,7 +69,6 @@ export async function detectUserLocation(): Promise<{ lat: number; lng: number }
   }
 }
 
-// Reverse geocode to get district from coordinates
 export async function getDistrictFromCoordinates(
   lat: number,
   lng: number
@@ -100,6 +96,30 @@ export async function getDistrictFromCoordinates(
   }
 }
 
+const getVoiceName = (lang: string): string => {
+  switch (lang) {
+      case 'pa-IN':
+          return 'pa-IN-Wavenet-A';
+      case 'bn-IN':
+          return 'bn-IN-Wavenet-D';
+      case 'ta-IN':
+          return 'ta-IN-Wavenet-D';
+      case 'te-IN':
+          return 'te-IN-Wavenet-D';
+      case 'gu-IN':
+          return 'gu-IN-Wavenet-A';
+      case 'mr-IN':
+          return 'mr-IN-Wavenet-A';
+      case 'kn-IN':
+          return 'kn-IN-Wavenet-A';
+      case 'en-IN':
+          return 'en-IN-Wavenet-D';
+      case 'hi-IN':
+      default:
+          return 'hi-IN-Wavenet-D';
+  }
+};
+
 export async function speakWithGoogleTTS(text: string, lang: string = 'hi-IN'): Promise<void> {
   try {
     const apiKey = import.meta.env.VITE_GOOGLE_TTS_API_KEY;
@@ -109,6 +129,8 @@ export async function speakWithGoogleTTS(text: string, lang: string = 'hi-IN'): 
       speakText(text, lang);
       return;
     }
+
+    const voiceName = getVoiceName(lang);
 
     const response = await fetch(
       `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`,
@@ -121,7 +143,7 @@ export async function speakWithGoogleTTS(text: string, lang: string = 'hi-IN'): 
           input: { text },
           voice: {
             languageCode: lang,
-            name: lang === 'hi-IN' ? 'hi-IN-Wavenet-D' : 'en-IN-Wavenet-D',
+            name: voiceName,
             ssmlGender: 'NEUTRAL'
           },
           audioConfig: {

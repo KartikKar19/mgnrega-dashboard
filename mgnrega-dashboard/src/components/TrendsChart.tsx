@@ -5,7 +5,7 @@ import { formatNumber } from '../lib/supabase';
 
 interface Props {
   data: DistrictPerformance[];
-  language: 'hi' | 'en';
+  language: 'en' | 'hi' | 'pa' | 'bn' | 'ta' | 'te' | 'gu' | 'mr' | 'kn';
 }
 
 const TrendsChart: React.FC<Props> = ({ data, language }) => {
@@ -35,6 +35,97 @@ const TrendsChart: React.FC<Props> = ({ data, language }) => {
       householdsWorked: 'Households Worked',
       womenPersondays: 'Women Persondays',
       period: 'Period'
+    },
+    mr: {
+        workersTrend: 'कामगार कल',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'वेतन कल (लाखांमध्ये)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'कुटुंबे आणि महिला मनुष्यदिवस',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'एकूण कामगार',
+        wages: 'वेतन (₹ लाख)',
+        householdsWorked: 'काम केलेली कुटुंबे',
+        womenPersondays: 'महिला मनुष्यदिवस',
+        period: 'कालावधी'
+    },
+    kn: {
+        workersTrend: 'ಕಾರ್ಮಿಕರ ಟ್ರೆಂಡ್',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'ವೇತನ ಟ್ರೆಂಡ್ (ಲಕ್ಷಗಳಲ್ಲಿ)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'ಕುಟುಂಬಗಳು ಮತ್ತು ಮಹಿಳಾ ಮಾನವ ದಿನಗಳು',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'ಒಟ್ಟು ಕಾರ್ಮಿಕರು',
+        wages: 'ವೇತನಗಳು (₹ ಲಕ್ಷಗಳು)',
+        householdsWorked: 'ಕೆಲಸ ಮಾಡಿದ ಕುಟುಂಬಗಳು',
+        womenPersondays: 'ಮಹಿಳಾ ಮಾನವ ದಿನಗಳು',
+        period: 'ಅವಧಿ'
+    },
+    pa: {
+        workersTrend: 'ਕਰਮਚਾਰੀਆਂ ਦਾ ਰੁਝਾਨ',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'ਤਨਖਾਹ ਦਾ ਰੁਝਾਨ (ਲੱਖਾਂ ਵਿੱਚ)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'ਪਰਿਵਾਰ ਅਤੇ ਮਹਿਲਾ ਕਾਰਜ ਦਿਵਸ',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'ਕੁੱਲ ਕਰਮਚਾਰੀ',
+        wages: 'ਤਨਖਾਹ (₹ ਲੱਖ)',
+        householdsWorked: 'ਕੰਮ ਕਰਨ ਵਾਲੇ ਪਰਿਵਾਰ',
+        womenPersondays: 'ਮਹਿਲਾ ਕਾਰਜ ਦਿਵਸ',
+        period: 'ਸਮਾਂ'
+    },
+    bn: {
+        workersTrend: 'শ্রমিক প্রবণতা',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'মজুরি প্রবণতা (লাখে)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'পরিবার ও মহিলা কর্মদিবস',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'মোট শ্রমিক',
+        wages: 'মজুরি (₹ লক্ষ)',
+        householdsWorked: 'কাজ করা পরিবার',
+        womenPersondays: 'মহিলা কর্মদিবস',
+        period: 'সময়কাল'
+    },
+    ta: {
+        workersTrend: 'ஊழியர்கள் போக்கு',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'ஊதியப் போக்கு (இலட்சங்களில்)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'குடும்பங்கள் & பெண் நபர்கள் நாட்கள்',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'மொத்த ஊழியர்கள்',
+        wages: 'ஊதியம் (₹ இலட்சம்)',
+        householdsWorked: 'வேலை செய்த குடும்பங்கள்',
+        womenPersondays: 'பெண் நபர்கள் நாட்கள்',
+        period: 'காலம்'
+    },
+    te: {
+        workersTrend: 'కార్మికుల ట్రెండ్',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'వేతన ట్రెండ్ (లక్షలలో)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'కుటుంబాలు & మహిళా పనిదినాలు',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'మొత్తం కార్మికులు',
+        wages: 'వేతనాలు (₹ లక్షలు)',
+        householdsWorked: 'పనిచేసిన కుటుంబాలు',
+        womenPersondays: 'మహిళా పనిదినాలు',
+        period: 'కాలం'
+    },
+    gu: {
+        workersTrend: 'કાર્યકર પ્રવૃત્તિ',
+        workersTrendEn: 'Workers Trend',
+        wagesTrend: 'વેતન પ્રવૃત્તિ (લાખમાં)',
+        wagesTrendEn: 'Wages Trend (in Lakhs)',
+        householdsWomen: 'પરિવારો અને મહિલા માનવ-દિવસો',
+        householdsWomenEn: 'Households & Women Persondays',
+        totalWorkers: 'કુલ કાર્યકરો',
+        wages: 'વેતન (₹ લાખ)',
+        householdsWorked: 'કાર્યરત પરિવારો',
+        womenPersondays: 'મહિલા માનવ-દિવસો',
+        period: 'સમયગાળો'
     }
   };
 
