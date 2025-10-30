@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MapPin, Volume2, VolumeX, Briefcase, Languages, ChevronDown } from 'lucide-react';
+import { MapPin, Volume2, VolumeX, Briefcase, ChevronDown } from 'lucide-react';
 import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakWithGoogleTTS, stopSpeaking } from '../services/api';
 import type { District, DistrictPerformance } from '../lib/supabase';
 import { numberToHindiWords } from '../lib/supabase';
@@ -102,7 +102,7 @@ const Dashboard: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<LanguageCode>('hi');
-  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
+  //const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const ttsLang = SUPPORTED_LANGUAGES.find(l => l.code === language)!;
 
