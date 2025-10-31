@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { District } from '../lib/supabase';
-import { ChevronDown } from 'lucide-react';
 
 interface Props {
   districts: District[];
@@ -8,6 +7,7 @@ interface Props {
   onChange: (district: District) => void;
   language: 'en' | 'hi' | 'pa' | 'bn' | 'ta' | 'te' | 'gu' | 'mr' | 'kn';
 }
+
 const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChange, language }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -104,7 +104,7 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
         value={selectedDistrict?.district_code || ''}
         onChange={() => {}}
         className="district-select"
-        hidden
+        style={{ display: 'none' }} // Added inline style to ensure default browser arrow is hidden
       >
         <option value="">{placeholders.hi.placeholder}</option>
       </select>
@@ -120,10 +120,7 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
           className="district-input"
           autoComplete="off"
         />
-        <ChevronDown 
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" 
-            size={20}
-        />
+        {/* REMOVED ChevronDown icon */}
       </div>
 
       {isOpen && (

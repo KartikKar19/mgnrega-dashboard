@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MapPin, Volume2, VolumeX, Briefcase, ChevronDown } from 'lucide-react';
+import { MapPin, Volume2, VolumeX, Briefcase } from 'lucide-react';
 import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakWithGoogleTTS, stopSpeaking } from '../services/api';
 import type { District, DistrictPerformance } from '../lib/supabase';
 import { numberToHindiWords } from '../lib/supabase';
@@ -65,10 +65,6 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLanguage, on
             value={ttsLang.localName}
             onClick={() => setIsOpen(!isOpen)}
             className="district-input cursor-pointer pl-10"
-          />
-          <ChevronDown 
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
-              size={20}
           />
         </div>
         
