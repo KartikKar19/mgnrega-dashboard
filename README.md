@@ -2,7 +2,7 @@
 
 A comprehensive, bilingual (Hindi/English) dashboard for visualizing MGNREGA (Mahatma Gandhi National Rural Employment Guarantee Act) performance data across Indian districts. Features real-time data visualization, intelligent location detection, and text-to-speech capabilities in both languages.
 
-![MGNREGA Dashboard](https://img.shields.io/badge/React-18.x-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+![MGNREGA Dashboard](https://img.shields.io/badge/React-18.x-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue) 
 
 ## 🌟 Features
 
