@@ -518,7 +518,7 @@ const Dashboard: React.FC = () => {
         {selectedDistrict && performanceData.length > 0 && (
           <>
             <PerformanceCards 
-              data={performanceData[0]} 
+              performanceData={performanceData} // UPDATED: Pass full array
               districtName={selectedDistrict.district_name}
               language={language}
             />

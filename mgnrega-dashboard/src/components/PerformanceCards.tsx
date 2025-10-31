@@ -4,12 +4,32 @@ import type { DistrictPerformance } from '../lib/supabase';
 import { formatNumber, formatCurrency } from '../lib/supabase';
 
 interface Props {
-  data: DistrictPerformance;
+  performanceData: DistrictPerformance[]; // UPDATED: Changed prop to array
   districtName: string;
   language: 'en' | 'hi' | 'pa' | 'bn' | 'ta' | 'te' | 'gu' | 'mr' | 'kn';
 }
 
-const PerformanceCards: React.FC<Props> = ({ data, districtName, language }) => {
+const PerformanceCards: React.FC<Props> = ({ performanceData, districtName, language }) => { // UPDATED: Destructure new prop
+  
+  // Extract the latest data for the metric cards, assuming data is sorted latest first
+  const data = performanceData[0];
+  
+  // Extract the oldest data to determine the start of the reporting period
+  const oldest = performanceData[performanceData.length - 1];
+
+  let periodDisplay = '';
+  
+  if (performanceData.length > 1) {
+    // Format the period as a range: Month Year (Oldest) - Month Year (Latest)
+    const startYear = oldest.fin_year.substring(0, 4);
+    const endYear = data.fin_year.substring(0, 4);
+    periodDisplay = `${oldest.month} ${startYear} - ${data.month} ${endYear}`;
+  } else {
+    // Handle case with only one month of data
+    const currentYear = data.fin_year.substring(0, 4);
+    periodDisplay = `${data.month} ${currentYear}`;
+  }
+    
   const translations = {
     hi: {
       totalWorkers: 'कुल कामगार',
@@ -216,8 +236,8 @@ const PerformanceCards: React.FC<Props> = ({ data, districtName, language }) => 
         <h2 className="text-2xl font-bold mb-2">{districtName}</h2>
         <p style={{ opacity: 0.9 }}>
           {language === 'hi' 
-            ? `${data.month} ${data.fin_year} ${t.performance}` 
-            : `${t.performance} ${data.month} ${data.fin_year}`
+            ? `${periodDisplay} ${t.performance}` 
+            : `${t.performance} ${periodDisplay}`
           }
         </p>
       </div>
