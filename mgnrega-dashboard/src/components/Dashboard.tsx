@@ -349,7 +349,7 @@ const Dashboard: React.FC = () => {
       const womenWords = numberToHindiWords(latest.Women_Persondays);
       const householdsWords = numberToHindiWords(latest.Total_Households_Worked);
       const completedWorksWords = numberToHindiWords(latest.Number_of_Completed_Works);
-      const avgWageWords = numberToHindiWords(latest.Average_Wage_rate_per_day_per_person);
+      //const avgWageWords = numberToHindiWords(latest.Average_Wage_rate_per_day_per_person);
       const scPersondaysWords = numberToHindiWords(latest.SC_persondays);
       const stPersondaysWords = numberToHindiWords(latest.ST_persondays);
 
@@ -364,7 +364,6 @@ const Dashboard: React.FC = () => {
         
         Vetan vivaraṇ:
         Is mahine ka kul vetan: rupaye ${wagesWords}.
-        Pratidhin prathi vyakti ausat vetan: rupaye ${avgWageWords}.
         
         Parivaar aur karya vivaraṇ:
         Kul parivaar jinhone kaam kiya: ${householdsWords}.
