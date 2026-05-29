@@ -258,8 +258,37 @@ body {
 .selector-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 1rem;
+}
+.selector-header-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.detect-location-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary-base);
+  background-color: var(--color-blue-50);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.detect-location-btn:hover {
+  background-color: var(--color-gray-100);
+  color: var(--color-primary-dark);
+  border-color: var(--color-primary-base);
+}
+.detect-location-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .selector-header-icon {
   color: var(--color-primary-base);

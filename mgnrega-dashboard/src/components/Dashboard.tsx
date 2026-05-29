@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MapPin, Volume2, VolumeX, Briefcase } from 'lucide-react';
-import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, speakWithGoogleTTS, stopSpeaking } from '../services/api';
+import { getDistricts, getDistrictPerformance, detectUserLocation, getDistrictFromCoordinates, getDistrictFromIP, speakWithGoogleTTS, stopSpeaking } from '../services/api';
 import type { District, DistrictPerformance } from '../lib/supabase';
 import { numberToHindiWords } from '../lib/supabase';
 import DistrictSelector from './DistrictSelector';
 import PerformanceCards from './PerformanceCards';
 import TrendsChart from './TrendsChart';
-
 
 const MGNREGA_FULL_FORM = 'Mahatma Gandhi National Rural Employment Guarantee Act';
 
@@ -24,7 +23,17 @@ const SUPPORTED_LANGUAGES: { code: LanguageCode; name: string; localName: string
     { code: 'gu', name: 'Gujarati', localName: 'ગુજરાતી', ttsCode: 'gu-IN' },
 ];
 
-const extractYear = (fy: string) => fy.substring(0, 4);
+const getMonthAndYear = (dateStr: string, isHindi: boolean) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  const year = parts[0];
+  const monthNum = parseInt(parts[1], 10);
+  const monthsEng = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthsHi = ['Janvari', 'Farvari', 'March', 'April', 'Mayi', 'Joon', 'Julayi', 'Agast', 'Sitambar', 'Aktubar', 'Navambar', 'Disambar'];
+  return isHindi 
+    ? `${monthsHi[monthNum - 1] || 'Janvari'} ${year}`
+    : `${monthsEng[monthNum - 1] || 'Jan'} ${year}`;
+};
 
 interface LanguageSelectorProps {
   currentLanguage: LanguageCode;
@@ -88,6 +97,107 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ currentLanguage, on
   );
 };
 
+const matchDistrict = (detectedName: string, districts: District[]): District | undefined => {
+  if (!detectedName || districts.length === 0) return undefined;
+
+  const normalize = (name: string): string => {
+    return name
+      .toLowerCase()
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const removeSuffixes = (name: string): string => {
+    return name
+      .replace(/\b(district|city|town|urban|rural|suburban|division)\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const synonymMap: { [key: string]: string } = {
+    'bangalore': 'bengaluru',
+    'bengaluru urban': 'bengaluru',
+    'bengaluru rural': 'bengaluru rural',
+    'allahabad': 'prayagraj',
+    'banaras': 'varanasi',
+    'benares': 'varanasi',
+    'bombay': 'mumbai',
+    'calcutta': 'kolkata',
+    'madras': 'chennai',
+    'pondicherry': 'puducherry',
+    'baroda': 'vadodara',
+    'poona': 'pune',
+    'gauhati': 'guwahati',
+    'trivandrum': 'thiruvananthapuram',
+    'tehri': 'tehri garhwal',
+    'garwal': 'garhwal'
+  };
+
+  const cleanDetected = normalize(detectedName);
+  
+  // Resolve synonyms for detected name
+  let mappedDetected = cleanDetected;
+  for (const [synonym, standard] of Object.entries(synonymMap)) {
+    if (cleanDetected === synonym || cleanDetected.includes(synonym)) {
+      mappedDetected = standard;
+      break;
+    }
+  }
+
+  const baseDetected = removeSuffixes(mappedDetected);
+
+  console.log(`[Matching] Cleaned detected name: "${cleanDetected}", Mapped: "${mappedDetected}", Base: "${baseDetected}"`);
+
+  // 1. Exact matches on full normalized name (English or Hindi)
+  let match = districts.find(d => {
+    const en = normalize(d.district_name_en);
+    const hi = normalize(d.district_name_hi);
+    return en === cleanDetected || hi === cleanDetected;
+  });
+  if (match) {
+    console.log(`[Matching] Step 1 match found: "${match.district_name_en}"`);
+    return match;
+  }
+
+  // 2. Exact matches on mapped/resolved synonym name
+  match = districts.find(d => {
+    const en = normalize(d.district_name_en);
+    return en === mappedDetected;
+  });
+  if (match) {
+    console.log(`[Matching] Step 2 match found: "${match.district_name_en}"`);
+    return match;
+  }
+
+  // 3. Match on base names (removing "district", "urban", "rural" etc.)
+  match = districts.find(d => {
+    const enBase = removeSuffixes(normalize(d.district_name_en));
+    const hiBase = removeSuffixes(normalize(d.district_name_hi));
+    return enBase === baseDetected || hiBase === baseDetected;
+  });
+  if (match) {
+    console.log(`[Matching] Step 3 match found: "${match.district_name_en}"`);
+    return match;
+  }
+
+  // 4. Substring check: Does one contain the other?
+  match = districts.find(d => {
+    const en = normalize(d.district_name_en);
+    const hi = normalize(d.district_name_hi);
+    const enBase = removeSuffixes(en);
+    return en.includes(baseDetected) || 
+           baseDetected.includes(enBase) || 
+           hi.includes(baseDetected);
+  });
+  
+  if (match) {
+    console.log(`[Matching] Step 4 match found: "${match.district_name_en}"`);
+  } else {
+    console.log(`[Matching] No match found for "${detectedName}"`);
+  }
+  return match;
+};
 
 const Dashboard: React.FC = () => {
   const [districts, setDistricts] = useState<District[]>([]);
@@ -95,10 +205,10 @@ const Dashboard: React.FC = () => {
   const [performanceData, setPerformanceData] = useState<DistrictPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [autoDetectMessage, setAutoDetectMessage] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<LanguageCode>('hi');
-  //const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   const ttsLang = SUPPORTED_LANGUAGES.find(l => l.code === language)!;
 
@@ -114,6 +224,7 @@ const Dashboard: React.FC = () => {
     switchToMenu: string;
     searchDistrict: string;
     noDistrictFound: string;
+    detectLocation: string;
   }> = {
     en: {
       title: `${MGNREGA_FULL_FORM} Dashboard`,
@@ -126,7 +237,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'Data Source: Ministry of Rural Development, Government of India',
       switchToMenu: 'Change Language',
       searchDistrict: '-- Select District / Search --',
-      noDistrictFound: 'No district found'
+      noDistrictFound: 'No district found',
+      detectLocation: 'Detect Location'
     },
     hi: {
       title: `${MGNREGA_FULL_FORM} Dashboard`,
@@ -139,7 +251,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'डेटा स्रोत: ग्रामीण विकास मंत्रालय, भारत सरकार',
       switchToMenu: 'भाषा बदलें',
       searchDistrict: '-- जिला चुनें / Search District --',
-      noDistrictFound: 'कोई जिला नहीं मिला / No district found'
+      noDistrictFound: 'कोई जिला नहीं मिला / No district found',
+      detectLocation: 'स्थान पहचानें'
     },
     mr: {
       title: `${MGNREGA_FULL_FORM} डॅशबोर्ड`,
@@ -152,7 +265,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'डेटा स्त्रोत: ग्रामीण विकास मंत्रालय, भारत सरकार',
       switchToMenu: 'भाषा बदला',
       searchDistrict: '-- जिल्हा निवडा / Search District --',
-      noDistrictFound: 'जिल्हा सापडला नाही'
+      noDistrictFound: 'जिल्हा सापडला नाही',
+      detectLocation: 'स्थान शोधा'
     },
     kn: {
       title: `${MGNREGA_FULL_FORM} ಡ್ಯಾಶ್‌ಬೋರ್ಡ್`,
@@ -165,7 +279,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'ಡೇಟಾ ಮೂಲ: ಗ್ರಾಮೀಣಾಭಿವೃದ್ಧಿ ಸಚಿವಾಲಯ, ಭಾರತ ಸರ್ಕಾರ',
       switchToMenu: 'ಭಾಷೆ ಬದಲಾಯಿಸಿ',
       searchDistrict: '-- ಜಿಲ್ಲೆ ಆಯ್ಕೆಮಾಡಿ / Search District --',
-      noDistrictFound: 'ಯಾವುದೇ ಜಿಲ್ಲೆ ಕಂಡುಬಂದಿಲ್ಲ'
+      noDistrictFound: 'ಯಾವುದೇ ಜಿಲ್ಲೆ ಕಂಡುಬಂದಿಲ್ಲ',
+      detectLocation: 'ಸ್ಥಳ ಪತ್ತೆ ಮಾಡಿ'
     },
     pa: {
       title: `${MGNREGA_FULL_FORM} ਡੈਸ਼ਬੋਰਡ`,
@@ -178,7 +293,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'ਡਾਟਾ ਸਰੋਤ: ਪੇਂਡੂ ਵਿਕਾਸ ਮੰਤਰਾਲਾ, ਭਾਰਤ ਸਰਕਾਰ',
       switchToMenu: 'ਭਾਸ਼ਾ ਬਦਲੋ',
       searchDistrict: '-- ਜ਼ਿਲ੍ਹਾ ਚੁਣੋ / Search District --',
-      noDistrictFound: 'ਕੋਈ ਜ਼ਿਲ੍ਹਾ ਨਹੀਂ ਲੱਭਿਆ'
+      noDistrictFound: 'ਕੋਈ ਜ਼ਿਲ੍ਹਾ ਨਹੀਂ ਲੱਭਿਆ',
+      detectLocation: 'ਸਥਾਨ ਲੱਭੋ'
     },
     bn: {
       title: `${MGNREGA_FULL_FORM} ড্যাশবোর্ড`,
@@ -191,11 +307,12 @@ const Dashboard: React.FC = () => {
       dataSource: 'তথ্য সূত্র: গ্রামীণ উন্নয়ন মন্ত্রক, ভারত সরকার',
       switchToMenu: 'ভাষা পরিবর্তন করুন',
       searchDistrict: '-- জেলা নির্বাচন করুন / Search District --',
-      noDistrictFound: 'কোন জেলা পাওয়া যায়নি'
+      noDistrictFound: 'কোন জেলা পাওয়া যায়নি',
+      detectLocation: 'স্থান সনাক্তকরণ'
     },
     ta: {
       title: `${MGNREGA_FULL_FORM} டாஷ்போர்டு`,
-      subtitle: 'மகாத்மா காந்தி தேசிய ஊரக வேலை உறுதிச் சட்ட செயல்திறன் டாஷ்போர்டு',
+      subtitle: 'மகாத்மா காந்தி தேசிய ஊரக வேலை உறுதிச் Sagar செயல்திறன் டாஷ்போர்டு',
       selectDistrict: 'உங்கள் மாவட்டத்தைத் தேர்ந்தெடுக்கவும்',
       loading: 'ஏற்றப்படுகிறது...',
       detectingLocation: '📍 உங்கள் இருப்பிடம் கண்டறியப்படுகிறது...',
@@ -204,7 +321,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'தரவு ஆதாரம்: ஊரக வளர்ச்சி அமைச்சகம், இந்திய அரசு',
       switchToMenu: 'மொழியை மாற்று',
       searchDistrict: '-- மாவட்டத்தைத் தேர்ந்தெடுக்கவும் / Search District --',
-      noDistrictFound: 'மாவட்டம் எதுவும் கண்டறியப்படவில்லை'
+      noDistrictFound: 'மாவட்டம் எதுவும் கண்டறியப்படவில்லை',
+      detectLocation: 'இருப்பிடத்தைக் கண்டுபிடி'
     },
     te: {
       title: `${MGNREGA_FULL_FORM} డాష్‌బోర్డ్`,
@@ -217,7 +335,8 @@ const Dashboard: React.FC = () => {
       dataSource: 'డేటా మూలం: గ్రామీణాభివృద్ధి మంత్రిత్వ శాఖ, భారత ప్రభుత్వం',
       switchToMenu: 'భాష మార్చండి',
       searchDistrict: '-- జిల్లాను ఎంచుకోండి / Search District --',
-      noDistrictFound: 'జిల్లా ఏదీ కనుగొనబడలేదు'
+      noDistrictFound: 'జిల్లా ఏదీ కనుగొనబడలేదు',
+      detectLocation: 'స్థానాన్ని కనుగొను'
     },
     gu: {
       title: `${MGNREGA_FULL_FORM} ડેશબોર્ડ`,
@@ -230,66 +349,17 @@ const Dashboard: React.FC = () => {
       dataSource: 'ડેટા સ્ત્રોત: ગ્રામીણ વિકાસ મંત્રાલય, ભારત સરકાર',
       switchToMenu: 'ભાષા બદલો',
       searchDistrict: '-- જિલ્લો પસંદ કરો / Search District --',
-      noDistrictFound: 'કોઈ જિલ્લો મળ્યો નથી'
+      noDistrictFound: 'કોઈ જિલ્લો મળ્યો નથી',
+      detectLocation: 'સ્થાન શોધો'
     }
   };
 
   const t = translations[language];
 
-  useEffect(() => {
-    loadDistricts();
-  }, []);
-
-  useEffect(() => {
-    autoDetectDistrict();
-  }, [districts]);
-
-  const loadDistricts = async () => {
+  const loadPerformanceData = useCallback(async (districtNameEn: string) => {
     try {
       setLoading(true);
-      const data = await getDistricts();
-      setDistricts(data);
-    } catch (err) {
-      setError('Failed to load districts');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const autoDetectDistrict = async () => {
-    if (districts.length === 0) return;
-    
-    try {
-      setDetectingLocation(true);
-      const location = await detectUserLocation();
-      
-      if (location) {
-        const districtName = await getDistrictFromCoordinates(location.lat, location.lng);
-        
-        if (districtName) {
-          const matchedDistrict = districts.find(d => 
-            d.district_name.toLowerCase().includes(districtName.toLowerCase()) ||
-            districtName.toLowerCase().includes(d.district_name.toLowerCase())
-          );
-          
-          if (matchedDistrict) {
-            setSelectedDistrict(matchedDistrict);
-            loadPerformanceData(matchedDistrict.district_code);
-          }
-        }
-      }
-    } catch (err) {
-      console.log('Could not auto-detect location:', err);
-    } finally {
-      setDetectingLocation(false);
-    }
-  };
-
-  const loadPerformanceData = async (districtCode: string) => {
-    try {
-      setLoading(true);
-      const data = await getDistrictPerformance(districtCode);
+      const data = await getDistrictPerformance(districtNameEn);
       setPerformanceData(data);
       setError(null);
     } catch (err) {
@@ -298,11 +368,123 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const loadDistricts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setAutoDetectMessage(null);
+      const data = await getDistricts();
+      setDistricts(data);
+    } catch (err) {
+      setError('Failed to load districts');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const autoDetectDistrict = useCallback(async (isManual: boolean = false) => {
+    if (districts.length === 0) return;
+    setAutoDetectMessage(null);
+
+    try {
+      setDetectingLocation(true);
+      let districtName: string | null = null;
+      let matchedDistrict: District | undefined;
+
+      // 1. Try browser geolocation
+      try {
+        const location = await detectUserLocation();
+        if (location) {
+          districtName = await getDistrictFromCoordinates(location.lat, location.lng);
+        }
+      } catch (geoErr) {
+        console.warn('Browser geolocation failed/denied, trying IP geolocation...', geoErr);
+      }
+
+      // 2. Try IP-based location if geolocation failed/denied or returned nothing
+      if (!districtName) {
+        try {
+          districtName = await getDistrictFromIP();
+        } catch (ipErr) {
+          console.warn('IP geolocation failed...', ipErr);
+        }
+      }
+
+      // 3. Match against loaded districts list
+      if (districtName) {
+        console.log(`[AutoDetect] Attempting to match detected name: "${districtName}"`);
+        matchedDistrict = matchDistrict(districtName, districts);
+        if (matchedDistrict) {
+          console.log(`[AutoDetect] Successfully matched to: "${matchedDistrict.district_name_en}"`);
+        } else {
+          console.warn(`[AutoDetect] Could not find any district match for: "${districtName}"`);
+        }
+      }
+
+      // 4. Set selected district or handle failure
+      if (matchedDistrict) {
+        setSelectedDistrict(matchedDistrict);
+        await loadPerformanceData(matchedDistrict.district_name_en);
+        if (isManual) {
+          setAutoDetectMessage(
+            language === 'hi' 
+              ? `📍 आपका स्थान खोजा गया: ${matchedDistrict.district_name_hi}`
+              : `📍 Location detected: ${matchedDistrict.district_name_en}`
+          );
+        }
+      } else {
+        // Fallback to BENGALURU if available, otherwise districts[0]
+        const fallbackDistrict = districts.find(d => d.district_name_en.toUpperCase() === 'BENGALURU') || districts[0];
+        setSelectedDistrict(fallbackDistrict);
+        await loadPerformanceData(fallbackDistrict.district_name_en);
+        
+        if (isManual) {
+          setAutoDetectMessage(
+            language === 'hi'
+              ? 'स्थान की पहचान नहीं हो सकी। डिफ़ॉल्ट जिला डेटा दिखाया जा रहा है।'
+              : 'Location auto-detect did not resolve. Showing default district data.'
+          );
+        } else {
+          setAutoDetectMessage(
+            language === 'hi'
+              ? 'ऑटो स्थान पहचान विफल। डिफ़ॉल्ट जिला डेटा दिखाया जा रहा है।'
+              : 'Location auto-detect did not resolve. Showing default district data.'
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Could not auto-detect location:', err);
+      const fallbackDistrict = districts.find(d => d.district_name_en.toUpperCase() === 'BENGALURU') || districts[0];
+      setSelectedDistrict(fallbackDistrict);
+      await loadPerformanceData(fallbackDistrict.district_name_en);
+      setAutoDetectMessage(
+        language === 'hi'
+          ? 'स्थान पहचान त्रुटि। डिफ़ॉल्ट जिला डेटा दिखाया जा रहा है।'
+          : 'Location detection failed. Showing default district data.'
+      );
+    } finally {
+      setDetectingLocation(false);
+    }
+  }, [districts, loadPerformanceData, language]);
+
+  const hasAutoDetected = useRef(false);
+
+  useEffect(() => {
+    loadDistricts();
+  }, [loadDistricts]);
+
+  useEffect(() => {
+    if (districts.length > 0 && !hasAutoDetected.current) {
+      hasAutoDetected.current = true;
+      autoDetectDistrict(false);
+    }
+  }, [districts, autoDetectDistrict]);
 
   const handleDistrictChange = (district: District) => {
     setSelectedDistrict(district);
-    loadPerformanceData(district.district_code);
+    loadPerformanceData(district.district_name_en);
     stopSpeaking();
     setIsSpeaking(false);
   };
@@ -328,111 +510,114 @@ const Dashboard: React.FC = () => {
     const oldest = performanceData[performanceData.length - 1];
     let text = '';
     
-    const startYear = extractYear(oldest.fin_year);
-    const endYear = extractYear(latest.fin_year);
-    
     const periodHindi = performanceData.length > 1
-      ? `${oldest.month} ${startYear} se lekar ${latest.month} ${endYear}`
-      : `${latest.month} ${endYear}`;
+      ? `${getMonthAndYear(oldest.reporting_month, true)} se lekar ${getMonthAndYear(latest.reporting_month, true)}`
+      : getMonthAndYear(latest.reporting_month, true);
       
     const periodEnglish = performanceData.length > 1
-      ? `from ${oldest.month} ${startYear} to ${latest.month} ${endYear}`
-      : `${latest.month} ${endYear}`;
+      ? `from ${getMonthAndYear(oldest.reporting_month, false)} to ${getMonthAndYear(latest.reporting_month, false)}`
+      : getMonthAndYear(latest.reporting_month, false);
+
+    const districtName = language === 'hi' ? selectedDistrict.district_name_hi : selectedDistrict.district_name_en;
 
     if (language === 'hi') {
-      const workersWords = numberToHindiWords(latest.Total_No_of_Workers);
-      const wagesWords = numberToHindiWords(latest.Wages);
-      const womenWords = numberToHindiWords(latest.Women_Persondays);
-      const householdsWords = numberToHindiWords(latest.Total_Households_Worked);
-      const completedWorksWords = numberToHindiWords(latest.Number_of_Completed_Works);
-      //const avgWageWords = numberToHindiWords(latest.Average_Wage_rate_per_day_per_person);
-      const scPersondaysWords = numberToHindiWords(latest.SC_persondays);
-      const stPersondaysWords = numberToHindiWords(latest.ST_persondays);
+      const demand = numberToHindiWords(latest.work_demand);
+      const allocated = numberToHindiWords(latest.work_allocated);
+      const target = numberToHindiWords(latest.persondays_target);
+      const achieved = numberToHindiWords(latest.persondays_achieved);
+      const timeliness = latest.wage_payment_timeliness_pct.toFixed(0);
+      const utilization = latest.fund_utilization_pct.toFixed(0);
+      const grade = latest.overall_grade.toFixed(1);
 
-      text = `${selectedDistrict.district_name} jile ka ${MGNREGA_FULL_FORM} pradarshan report.
-        Mahina: ${periodHindi}.
+      text = `${districtName} jile ka ${MGNREGA_FULL_FORM} pradarshan report.
+        Reporting avadhi: ${periodHindi}.
         
         Kaamgaar vivaraṇ:
-        Kul kaamgaar: ${workersWords}.
-        Mahila karya divas: ${womenWords}.
-        Anusoochit jaati karya divas: ${scPersondaysWords}.
-        Anusoochit janjati karya divas: ${stPersondaysWords}.
+        Kaam ki maang karne wale kul parivaar: ${demand}.
+        Kaam paane wale kul parivaar: ${allocated}.
+        Nirdharit karyadivas: ${target}.
+        Praapt kiye gaye karyadivas: ${achieved}.
         
-        Vetan vivaraṇ:
-        Is mahine ka kul vetan: rupaye ${wagesWords}.
+        Karyadakshta aur bhugtan:
+        Samay par bhugtan ka pratishat: ${timeliness} pratishat.
+        Nidhi upayogita ka pratishat: ${utilization} pratishat.
         
-        Parivaar aur karya vivaraṇ:
-        Kul parivaar jinhone kaam kiya: ${householdsWords}.
-        Poorn kiye gaye karya: ${completedWorksWords}.
-        
-        Yeh tha aapke jile ka sampurn ${MGNREGA_FULL_FORM} pradarshan vivaraṇ.`;
+        Jile ka kul pradarshan ank hai das mein se ${grade}.
+        Yeh tha aapke jile ka sampurn pradarshan vivaraṇ.`;
     } else {
-      const workers = latest.Total_No_of_Workers.toFixed(0);
-      const wages = latest.Wages.toFixed(0);
-      const women = latest.Women_Persondays.toFixed(0);
-      const households = latest.Total_Households_Worked.toFixed(0);
-      const completedWorks = latest.Number_of_Completed_Works.toFixed(0);
-      const avgWage = latest.Average_Wage_rate_per_day_per_person.toFixed(2);
-      const scPersondays = latest.SC_persondays.toFixed(0);
-      const stPersondays = latest.ST_persondays.toFixed(0);
+      const demand = latest.work_demand.toFixed(0);
+      const allocated = latest.work_allocated.toFixed(0);
+      const target = latest.persondays_target.toFixed(0);
+      const achieved = latest.persondays_achieved.toFixed(0);
+      const timeliness = latest.wage_payment_timeliness_pct.toFixed(0);
+      const utilization = latest.fund_utilization_pct.toFixed(0);
+      const grade = latest.overall_grade.toFixed(1);
 
       const scriptTranslations: Record<LanguageCode, string[]> = {
           hi: [''],
           en: [
-              `${MGNREGA_FULL_FORM} performance report for ${selectedDistrict.district_name} district. Period: ${periodEnglish}.`,
-              `Worker Details: Total workers: ${workers}. Women persondays: ${women}. Scheduled Caste persondays: ${scPersondays}. Scheduled Tribe persondays: ${stPersondays}.`,
-              `Wage Details: Total wages (for this period): rupees ${wages}. Average wage per day per person: rupees ${avgWage}.`,
-              `Household and Work Details: Total households worked: ${households}. Number of completed works: ${completedWorks}.`,
-              `This was the complete ${MGNREGA_FULL_FORM} performance summary for your district.`
+              `Mahatma Gandhi National Rural Employment Guarantee Act performance report for ${districtName} district. Period: ${periodEnglish}.`,
+              `Work Details: Households demanding work: ${demand}. Households provided work: ${allocated}.`,
+              `Persondays Details: Target persondays: ${target}. Achieved persondays: ${achieved}.`,
+              `Efficiency: Wage payment timeliness: ${timeliness} percent. Fund utilization: ${utilization} percent.`,
+              `The overall performance score is ${grade} out of 10.`,
+              `This was the complete performance summary for your district.`
           ],
           mr: [
-              `${selectedDistrict.district_name} जिल्ह्यासाठी ${MGNREGA_FULL_FORM} कार्यप्रदर्शन अहवाल. कालावधी: ${periodEnglish}.`,
-              `कामगार तपशील: एकूण कामगार: ${workers}. महिलांचे मनुष्यदिवस: ${women}. अनुसूचित जातीचे मनुष्यदिवस: ${scPersondays}. अनुसूचित जमातीचे मनुष्यदिवस: ${stPersondays}.`,
-              `वेतन तपशील: एकूण वेतन (या कालावधीसाठी): रुपये ${wages}. प्रति व्यक्ती दररोज सरासरी वेतन: रुपये ${avgWage}.`,
-              `कुटुंब आणि कामाचा तपशील: एकूण काम केलेली कुटुंबे: ${households}. पूर्ण झालेल्या कामांची संख्या: ${completedWorks}.`,
-              `हा तुमच्या जिल्ह्याचा संपूर्ण ${MGNREGA_FULL_FORM} कार्यप्रदर्शन सारांश होता.`
+            `${districtName} जिल्ह्यासाठी मनरेगा कार्यप्रदर्शन अहवाल. कालावधी: ${periodEnglish}.`,
+            `कामाचा तपशील: कामाची मागणी करणारी कुटुंबे: ${demand}. काम पुरवलेली कुटुंबे: ${allocated}.`,
+            `मनुष्यदिवस तपशील: लक्ष्य मनुष्यदिवस: ${target}. पूर्ण झालेले मनुष्यदिवस: ${achieved}.`,
+            `कार्यक्षमता: वेळेत वेतन देण्याचे प्रमाण: ${timeliness} टक्के. निधीचा वापर: ${utilization} टक्के.`,
+            `एकूण कार्यप्रदर्शन धावसंख्या १० पैकी ${grade} आहे.`,
+            `हा तुमच्या जिल्ह्याचा संपूर्ण कार्यप्रदर्शन सारांश होता.`
           ],
           kn: [
-              `${selectedDistrict.district_name} ಜಿಲ್ಲೆಗೆ ${MGNREGA_FULL_FORM} ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿ. ಅವಧಿ: ${periodEnglish}.`,
-              `ಕಾರ್ಮಿಕರ ವಿವರಗಳು: ಒಟ್ಟು ಕಾರ್ಮಿಕರು: ${workers}. ಮಹಿಳಾ ಮಾನವ ದಿನಗಳು: ${women}. ಪರಿಶಿಷ್ಟ ಜಾತಿ ಮಾನವ ದಿನಗಳು: ${scPersondays}. ಪರಿಶಿಷ್ಟ ಪಂಗಡ ಮಾನವ ದಿನಗಳು: ${stPersondays}.`,
-              `ವೇತನ ವಿವರಗಳು: ಒಟ್ಟು ವೇತನ (ಈ ಅವಧಿಗೆ): ರೂಪಾಯಿ ${wages}. ಒಬ್ಬರಿಗೆ ದಿನಕ್ಕೆ ಸರಾಸರಿ ವೇತನ: ರೂಪಾಯಿ ${avgWage}.`,
-              `ಕುಟುಂಬ ಮತ್ತು ಕೆಲಸದ ವಿವರಗಳು: ಒಟ್ಟು ಕೆಲಸ ಮಾಡಿದ ಕುಟುಂಬಗಳು: ${households}. ಪೂರ್ಣಗೊಂಡ ಕೆಲಸಗಳ ಸಂಖ್ಯೆ: ${completedWorks}.`,
-              `ಇದು ನಿಮ್ಮ ಜಿಲ್ಲೆಯ ${MGNREGA_FULL_FORM} ಕಾರ್ಯಕ್ಷಮತೆಯ ಸಂಪೂರ್ಣ ಸಾರಾಂಶವಾಗಿದೆ.`
+              `${districtName} ಜಿಲ್ಲೆಯ ಮಗನರೇಗಾ ಕಾರ್ಯಕ್ಷಮತೆ ವರದಿ. ಅವಧಿ: ${periodEnglish}.`,
+              `ಕೆಲಸದ ವಿವರಗಳು: ಕೆಲಸಕ್ಕಾಗಿ ಅರ್ಜಿ ಸಲ್ಲಿಸಿದ ಕುಟುಂಬಗಳು: ${demand}. ಕೆಲಸ ಒದಗಿಸಿದ ಕುಟುಂಬಗಳು: ${allocated}.`,
+              `ಮಾನವ ದಿನಗಳ ವಿವರಗಳು: ಗುರಿ ಮಾನವ ದಿನಗಳು: ${target}. ಸಾಧಿಸಿದ ಮಾನವ ದಿನಗಳು: ${achieved}.`,
+              `ದಕ್ಷತೆ: સમયಕ್ಕೆ ವೇತನ ಪಾವತಿ: ಶೇಕಡಾ ${timeliness}. ಹಣ ಬಳಕೆ: ಶೇಕಡಾ ${utilization}.`,
+              `ಒಟ್ಟು ಕಾರ್ಯಕ್ಷಮತೆಯ ಸ್ಕೋರ್ ೧೦ ಕ್ಕೆ ${grade} ಆಗಿದೆ.`,
+              `ಇದು ನಿಮ್ಮ ಜಿಲ್ಲೆಯ ಕಾರ್ಯಕ್ಷಮತೆಯ ಸಂಪೂರ್ಣ ಸಾರಾಂಶವಾಗಿದೆ.`
           ],
           pa: [
-              `${MGNREGA_FULL_FORM} ਦੀ ਕਾਰਗੁਜ਼ਾਰੀ ਰਿਪੋਰਟ ${selectedDistrict.district_name} ਜ਼ਿਲ੍ਹੇ ਲਈ। ਸਮਾਂ: ${periodEnglish}.`,
-              `ਕਰਮਚਾਰੀ ਵੇਰਵੇ: ਕੁੱਲ ਕਰਮਚਾਰੀ: ${workers}। ਮਹਿਲਾ ਕਾਰਜ ਦਿਵਸ: ${women}। ਅਨੁਸੂਚਿਤ ਜਾਤੀ ਕਾਰਜ ਦਿਵਸ: ${scPersondays}। ਅਨੁਸੂਚਿਤ ਕਬੀਲੇ ਕਾਰਜ ਦਿਵਸ: ${stPersondays}।`,
-              `ਤਨਖਾਹ ਵੇਰਵੇ: ਕੁੱਲ ਤਨਖਾਹ (ਇਸ ਸਮੇਂ ਲਈ): ਰੁਪਏ ${wages}। ਪ੍ਰਤੀ ਦਿਨ ਔਸਤ ਤਨਖਾਹ: ਰੁਪਏ ${avgWage}।`,
-              `ਪਰਿਵਾਰ ਅਤੇ ਕੰਮ ਦੇ ਵੇਰਵੇ: ਕੁੱਲ ਕੰਮ ਕਰਨ ਵਾਲੇ ਪਰਿਵਾਰ: ${households}। ਮੁਕੰਮਲ ਹੋਏ ਕਾਰਜਾਂ ਦੀ ਗਿਣਤੀ: ${completedWorks}।`,
-              `ਇਹ ਤੁਹਾਡੇ ਜ਼ਿਲ੍ਹੇ ਦੀ ${MGNREGA_FULL_FORM} ਦੀ ਸੰਪੂਰਨ ਕਾਰਗੁਜ਼ਾਰੀ ਸੰਖੇਪ ਜਾਣਕਾਰੀ ਸੀ।`
+              `ਮਨਰੇਗਾ ਦੀ ਕਾਰਗੁਜ਼ਾਰੀ ਰਿਪੋਰਟ ${districtName} ਜ਼ਿਲ੍ਹੇ ਲਈ। ਸਮਾਂ: ${periodEnglish}.`,
+              `ਕੰਮ ਦੇ ਵੇਰਵੇ: ਕੰਮ ਮੰਗਣ ਵਾਲੇ ਪਰਿਵਾਰ: ${demand}। ਕੰਮ ਦਿੱਤੇ ਗਏ ਪਰਿਵਾਰ: ${allocated}।`,
+              `ਕਾਰਜ ਦਿਵਸ ਵੇਰਵੇ: ਨਿਸ਼ਾਨਾ ਕਾਰਜ ਦਿਵਸ: ${target}। ਪ੍ਰਾਪਤ ਕੀਤੇ ਕਾਰਜ ਦਿਵਸ: ${achieved}।`,
+              `ਕਾਰਜਕੁਸ਼ਲਤਾ: ਸਮੇਂ ਸਿਰ ਭੁਗਤਾਨ: ${timeliness} ਪ੍ਰਤੀਸ਼ਤ। ਫੰਡ ਦੀ ਵਰਤੋਂ: ${utilization} ਪ੍ਰਤੀਸ਼ਤ।`,
+              `ਕੁੱਲ ਕਾਰਗੁਜ਼ਾਰੀ ਸਕੋਰ 10 ਵਿੱਚੋਂ ${grade} ਹੈ।`,
+              `ਇਹ ਤੁਹਾਡੇ ਜ਼ਿਲ੍ਹੇ ਦੀ ਕਾਰਗੁਜ਼ਾਰੀ ਦਾ ਸੰਪੂਰਨ ਸਾਰਾਂਸ਼ ਸੀ।`
           ],
           bn: [
-              `${MGNREGA_FULL_FORM} কর্মক্ষমতা রিপোর্ট ${selectedDistrict.district_name} জেলার জন্য। সময়কাল: ${periodEnglish}.`,
-              `শ্রমিক বিবরণ: মোট শ্রমিক: ${workers}. মহিলা কর্মদিবস: ${women}. তফসিলি জাতি কর্মদিবস: ${scPersondays}. তফসিলি উপজাতি কর্মদিবস: ${stPersondays}.`,
-              `মজুরি বিবরণ: মোট মজুরি (এই সময়ের জন্য): রুপি ${wages}. প্রতিদিন প্রতি ব্যক্তির গড় মজুরি: রুপি ${avgWage}.`,
-              `পরিবার এবং কাজের বিবরণ: মোট কাজ করা পরিবার: ${households}. সমাপ্ত কাজের সংখ্যা: ${completedWorks}।`,
-              `এটি আপনার জেলার ${MGNREGA_FULL_FORM} এর সম্পূর্ণ পারফরম্যান্স সারাংশ ছিল।`
+              `মনরেগা কর্মক্ষমতা রিপোর্ট ${districtName} জেলার জন্য। সময়কাল: ${periodEnglish}.`,
+              `কাজের বিবরণ: কাজ চাওয়া পরিবার: ${demand}. কাজ দেওয়া পরিবার: ${allocated}.`,
+              `কর্মদিবসের বিবরণ: লক্ষ্য কর্মদিবস: ${target}. অর্জিত কর্মদিবস: ${achieved}.`,
+              `দক্ষতা: সময়মতো মজুরি প্রদান: ${timeliness} শতাংশ. তহবিল ব্যবহার: ${utilization} শতাংশ.`,
+              `সামগ্রিক কর্মক্ষমতা স্কোর ১০ এর মধ্যে ${grade}.`,
+              `এটি আপনার জেলার সম্পূর্ণ পারফরম্যান্স সারাংশ ছিল।`
           ],
           ta: [
-              `${MGNREGA_FULL_FORM} செயல்திறன் அறிக்கை ${selectedDistrict.district_name} மாவட்டத்திற்காக. காலம்: ${periodEnglish}.`,
-              `ஊழியர் விவரங்கள்: மொத்த ஊழியர்கள்: ${workers}. பெண் நபர்கள் நாட்கள்: ${women}. பட்டியல் சாதி நபர்கள் நாட்கள்: ${scPersondays}. பட்டியல் பழங்குடி நபர்கள் நாட்கள்: ${stPersondays}.`,
-              `ஊதிய விவரங்கள்: மொத்த ஊதியம் (இந்த காலகட்டத்திற்கு): ரூபாய் ${wages}. ஒரு நபருக்கு ஒரு நாள் சராசரி ஊதியம்: ரூபாய் ${avgWage}.`,
-              `குடும்பம் மற்றும் வேலை விவரங்கள்: வேலை செய்த மொத்த குடும்பங்கள்: ${households}. முடிக்கப்பட்ட வேலைகளின் எண்ணிக்கை: ${completedWorks}.`,
-              `இது உங்கள் மாவட்டத்திற்கான ${MGNREGA_FULL_FORM} இன் முழுமையான செயல்திறன் சுருக்கம்.`
+              `வேலை உறுதிச் சட்ட செயல்திறன் அறிக்கை ${districtName} மாவட்டத்திற்காக. காலம்: ${periodEnglish}.`,
+              `வேலை விவரங்கள்: வேலை கோரும் குடும்பங்கள்: ${demand}. வேலை வழங்கப்பட்ட குடும்பங்கள்: ${allocated}.`,
+              `மனித நாட்கள் விவரங்கள்: இலக்கு மனித நாட்கள்: ${target}. சாதித்த மனித நாட்கள்: ${achieved}.`,
+              `திறன்: சரியான நேரத்தில் ஊதியம் வழங்குதல்: ${timeliness} சதவீதம். நிதி பயன்பாடு: ${utilization} சதவீதம்.`,
+              `ஒட்டுமொத்த செயல்திறன் மதிப்பெண் 10க்கு ${grade} ஆகும்.`,
+              `இது உங்கள் மாவட்டத்திற்கான முழுமையான செயல்திறன் சுருக்கம்.`
           ],
           te: [
-              `${MGNREGA_FULL_FORM} పనితీరు నివేదన ${selectedDistrict.district_name} జిల్లా కోసం. కాలం: ${periodEnglish}.`,
-              `కార్మికుల వివరాలు: మొత్తం కార్మికులు: ${workers}. మహిళా పనిదినాలు: ${women}. షెడ్యూల్డ్ కులాల పనిదినాలు: ${scPersondays}. షెడ్యూల్డ్ తెగల పనిదినాలు: ${stPersondays}.`,
-              `వేతన వివరాలు: మొత్తం వేతనాలు (ఈ కాలానికి): రూపాయలు ${wages}. రోజుకు సగటు వేతనం: రూపాయలు ${avgWage}.`,
-              `కుటుంబం మరియు పని వివరాలు: మొత్తం పనిచేసిన కుటుంబాలు: ${households}. పూర్తయిన పనుల సంఖ్య: ${completedWorks}.`,
-              `ఇది మీ జిల్లాకు ${MGNREGA_FULL_FORM} యొక్క పూర్తి పనితీరు సారాంశం.`
+              `మగనరేగా పనితీరు నివేదన ${districtName} జిల్లా కోసం. కాలం: ${periodEnglish}.`,
+              `కార్మికుల వివరాలు: పని కోరిన కుటుంబాలు: ${demand}. పని కల్పించిన కుటుంబాలు: ${allocated}.`,
+              `పనిదినాల వివరాలు: లక్ష్యం పనిదినాలు: ${target}. సాధించిన పనిదినాలు: ${achieved}.`,
+              `సామర్థ్యం: సమయానికి వేతన చెల్లింపులు: ${timeliness} శాతం. నిధుల వినియోగం: ${utilization} శాతం.`,
+              `మొత్తం పనితీరు స్కోరు 10 కి ${grade}.`,
+              `ఇది మీ జిల్లా యొక్క పూర్తి పనితీరు సారాంశం.`
           ],
           gu: [
-              `${MGNREGA_FULL_FORM} પ્રદર્શન અહેવાલ ${selectedDistrict.district_name} જિલ્લા માટે. સમયગાળો: ${periodEnglish}.`,
-              `કાર્યકરની વિગતો: કુલ કાર્યકરો: ${workers}. મહિલાઓના માનવ-દિવસો: ${women}. અનુસૂચિત જાતિના માનવ-દિવસો: ${scPersondays}. અનુસૂચિત જનજાતિના માનવ-દિવસો: ${stPersondays}.`,
-              `વેતનની વિગતો: કુલ વેતન (આ સમયગાળા માટે): રૂપિયા ${wages}. વ્યક્તિ દીઠ સરેરાશ દૈનિક વેતન: રૂપિયા ${avgWage}.`,
-              `પરિવાર અને કાર્યની વિગતો: કુલ કાર્યરત પરિવારો: ${households}. પૂર્ણ થયેલ કાર્યોની સંખ્યા: ${completedWorks}.`,
-              `આ તમારા જિલ્લા માટે ${MGNREGA_FULL_FORM} નો સંપૂર્ણ પ્રદર્શન સારાંશ હતો.`
+              `મનરેગા પ્રદર્શન અહેવાલ ${districtName} જિલ્લા માટે. સમયગાળો: ${periodEnglish}.`,
+              `કાર્યની વિગતો: કામ માંગતા પરિવારો: ${demand}. કામ આપેલા પરિવારો: ${allocated}.`,
+              `માનવ-દિવસોની વિગતો: લક્ષ્યાંકિત માનવ-દિવસો: ${target}. પ્રાપ્ત થયેલ માનવ-照顾દવસો: ${achieved}.`,
+              `કાર્યક્ષમતા: સમયસર વેતન ચૂકવણી: ${timeliness} ટકા. ભંડોળનો વપરાશ: ${utilization} ટકા.`,
+              `એકંદર કામગીરીનો સ્કોર ૧૦ માંથી ${grade} છે.`,
+              `આ તમારા જિલ્લા માટે પ્રદર્શનનો સંપૂર્ણ સારાંશ હતો.`
           ]
       };
       
@@ -451,7 +636,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-
   if (loading && districts.length === 0) {
     return (
       <div className="loading-screen">
@@ -462,6 +646,10 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  const currentDistrictName = selectedDistrict 
+    ? (language === 'hi' ? selectedDistrict.district_name_hi : selectedDistrict.district_name_en)
+    : '';
 
   return (
     <div className="dashboard-layout">
@@ -497,13 +685,28 @@ const Dashboard: React.FC = () => {
       <main className="main-content">
         <div className="selector-card">
           <div className="selector-header">
-            <MapPin className="selector-header-icon" size={24} />
-            <h2 className="selector-title">{t.selectDistrict}</h2>
+            <div className="selector-header-title-group">
+              <MapPin className="selector-header-icon" size={24} />
+              <h2 className="selector-title">{t.selectDistrict}</h2>
+            </div>
+            <button
+              onClick={() => autoDetectDistrict(true)}
+              disabled={detectingLocation}
+              className="detect-location-btn"
+              title={t.detectLocation}
+            >
+              {detectingLocation ? '...' : t.detectLocation}
+            </button>
           </div>
           
           {detectingLocation && (
             <div className="location-status">
               <p className="text-blue-700 text-sm">{t.detectingLocation}</p>
+            </div>
+          )}
+          {autoDetectMessage && (
+            <div className="location-status">
+              <p className="text-orange-600 text-sm">{autoDetectMessage}</p>
             </div>
           )}
           
@@ -518,8 +721,8 @@ const Dashboard: React.FC = () => {
         {selectedDistrict && performanceData.length > 0 && (
           <>
             <PerformanceCards 
-              performanceData={performanceData} // UPDATED: Pass full array
-              districtName={selectedDistrict.district_name}
+              performanceData={performanceData}
+              districtName={currentDistrictName}
               language={language}
             />
             

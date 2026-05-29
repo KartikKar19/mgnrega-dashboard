@@ -10,55 +10,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface District {
-  id: number;
-  state_code: string;
-  state_name: string;
-  district_code: string;
-  district_name: string;
+  district_name_en: string;
+  district_name_hi: string;
 }
 
 export interface DistrictPerformance {
   id: number;
-  fin_year: string;
-  month: string;
-  state_code: string;
-  state_name: string;
-  district_code: string;
-  district_name: string;
-  
-  // Using exact column names from CSV
-  Approved_Labour_Budget: number;
-  Average_Wage_rate_per_day_per_person: number;
-  Average_days_of_employment_provided_per_Household: number;
-  Differently_abled_persons_worked: number;
-  Material_and_skilled_Wages: number;
-  Number_of_Completed_Works: number;
-  Number_of_GPs_with_NIL_exp: number;
-  Number_of_Ongoing_Works: number;
-  Persondays_of_Central_Liability_so_far: number;
-  SC_persondays: number;
-  SC_workers_against_active_workers: number;
-  ST_persondays: number;
-  ST_workers_against_active_workers: number;
-  Total_Adm_Expenditure: number;
-  Total_Exp: number;
-  Total_Households_Worked: number;
-  Total_Individuals_Worked: number;
-  Total_No_of_Active_Job_Cards: number;
-  Total_No_of_Active_Workers: number;
-  Total_No_of_HHs_completed_100_Days_of_Wage_Employment: number;
-  Total_No_of_JobCards_issued: number;
-  Total_No_of_Workers: number;
-  Total_No_of_Works_Takenup: number;
-  Wages: number;
-  Women_Persondays: number;
-  percent_of_Category_B_Works: number;
-  percent_of_Expenditure_on_Agriculture_Allied_Works: number;
-  percent_of_NRM_Expenditure: number;
-  percentage_payments_gererated_within_15_days: number;
-  Remarks: string;
-  
-  last_updated: string;
+  district_name_en: string;
+  district_name_hi: string;
+  reporting_month: string;
+  overall_grade: number;
+  persondays_achieved: number;
+  persondays_target: number;
+  wage_payment_timeliness_pct: number;
+  fund_utilization_pct: number;
+  work_demand: number;
+  work_allocated: number;
 }
 
 export function formatNumber(num: number): string {

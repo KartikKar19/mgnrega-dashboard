@@ -15,11 +15,11 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
 
   useEffect(() => {
     if (selectedDistrict) {
-      setSearchTerm(selectedDistrict.district_name);
+      setSearchTerm(language === 'hi' ? selectedDistrict.district_name_hi : selectedDistrict.district_name_en);
     } else {
       setSearchTerm('');
     }
-  }, [selectedDistrict]);
+  }, [selectedDistrict, language]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,25 +35,27 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
 
   const filteredDistricts = useMemo(() => {
     if (!searchTerm) {
-      return districts.slice(0, 100); 
+      return districts; 
     }
     const lowerCaseSearch = searchTerm.toLowerCase();
 
-    let filtered = districts.filter(d => 
-      d.district_name.toLowerCase().includes(lowerCaseSearch) ||
-      d.state_name.toLowerCase().includes(lowerCaseSearch)
+    const filtered = districts.filter(d => 
+      d.district_name_en.toLowerCase().includes(lowerCaseSearch) ||
+      d.district_name_hi.toLowerCase().includes(lowerCaseSearch)
     );
 
     filtered.sort((a, b) => {
-      const aStarts = a.district_name.toLowerCase().startsWith(lowerCaseSearch);
-      const bStarts = b.district_name.toLowerCase().startsWith(lowerCaseSearch);
+      const nameA = language === 'hi' ? a.district_name_hi : a.district_name_en;
+      const nameB = language === 'hi' ? b.district_name_hi : b.district_name_en;
+      const aStarts = nameA.toLowerCase().startsWith(lowerCaseSearch);
+      const bStarts = nameB.toLowerCase().startsWith(lowerCaseSearch);
       if (aStarts && !bStarts) return -1;
       if (!aStarts && bStarts) return 1;
-      return a.district_name.localeCompare(b.district_name);
+      return nameA.localeCompare(nameB);
     });
 
     return filtered;
-  }, [districts, searchTerm]);
+  }, [districts, searchTerm, language]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -61,12 +63,13 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
   };
 
   const handleDistrictSelect = (district: District) => {
-    setSearchTerm(district.district_name);
+    setSearchTerm(language === 'hi' ? district.district_name_hi : district.district_name_en);
     onChange(district);
     setIsOpen(false);
   };
   
   const handleInputFocus = () => {
+    setSearchTerm('');
     setIsOpen(true);
   };
 
@@ -74,7 +77,7 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
       setTimeout(() => {
           if (!containerRef.current?.contains(document.activeElement)) {
               if (selectedDistrict && searchTerm === '') {
-                  setSearchTerm(selectedDistrict.district_name);
+                  setSearchTerm(language === 'hi' ? selectedDistrict.district_name_hi : selectedDistrict.district_name_en);
               } else if (!selectedDistrict && searchTerm) {
                   setSearchTerm('');
               }
@@ -101,7 +104,7 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
   return (
     <div className="district-select-container" ref={containerRef}>
       <select 
-        value={selectedDistrict?.district_code || ''}
+        value={selectedDistrict?.district_name_en || ''}
         onChange={() => {}}
         className="district-select"
         style={{ display: 'none' }} // Added inline style to ensure default browser arrow is hidden
@@ -128,14 +131,14 @@ const DistrictSelector: React.FC<Props> = ({ districts, selectedDistrict, onChan
           {filteredDistricts.length > 0 ? (
             filteredDistricts.map((district) => (
               <div
-                key={district.district_code}
-                className={`district-option ${selectedDistrict?.district_code === district.district_code ? 'selected' : ''}`}
+                key={district.district_name_en}
+                className={`district-option ${selectedDistrict?.district_name_en === district.district_name_en ? 'selected' : ''}`}
                 onMouseDown={(e) => {
                   e.preventDefault(); 
                   handleDistrictSelect(district);
                 }}
               >
-                {district.district_name} ({district.state_name})
+                {language === 'hi' ? district.district_name_hi : district.district_name_en}
               </div>
             ))
           ) : (
